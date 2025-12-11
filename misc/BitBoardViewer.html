@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>BitBoard Viewer</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            body{
+                margin: 0;
+            }
+            .board{
+                display: grid;
+                grid-template-columns: 50px 50px 50px 50px 50px 50px 50px 50px;
+                grid-template-rows: 50px 50px 50px 50px 50px 50px 50px 50px;
+                font-size: 27pt;
+            }
+            .board div{
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="board">
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+        </div>
+        <br />
+        <span id="bitTxt"></span>
+        <br />
+        <input id="bit" type="text" />
+        <button id="bitBtn">Map to Board</button>
+        <script>
+            var squares = document.querySelectorAll(".board div");
+            var bitText = document.getElementById("bitTxt");
+            var bitInput = document.getElementById("bit");
+            var btiBtn = document.getElementById("bitBtn");
+            let lightColor = true;
+
+            btiBtn.addEventListener("click", () => {
+                bitText.textContent = bitInput.value;
+                WriteBoard(BigInt(bitInput.value));
+                bitInput.value = "";
+            });
+
+            for (let i = 0; i < 8; ++i){
+                for (let j = 0; j < 8; ++j){
+                    squares[i*8 + j].style.background = lightColor ? "#FFCE9E" : "#D18B47";
+                    lightColor = !lightColor;
+                }
+                lightColor = !lightColor;
+            }
+
+            function GetBitBoardStr(board)
+            {
+                const bit = 1n << 63n;
+
+                let str = "\n +---+---+---+---+---+---+---+---+  \n";
+
+                for (let i = 0; i < 8; ++i){
+                    str += " |";
+                    for (let j = 7; j >= 0; --j){
+                        str += " " + (board & bit >> (BigInt(i) * 8n + BigInt(j)) ? "1 |" : "0 |");
+                    }
+                    str += " " + (8 - i).toString() + "\n";
+                }
+
+                str += " +---+---+---+---+---+---+---+---+\n   a   b   c   d   e   f   g   h    \n";
+                return str;
+            }
+
+            function WriteBoard(board)
+            {
+                const bit = 1n << 63n;
+                let boardIndex = 0;
+
+                for (let i = 0; i < 8; ++i){
+                    for (let j = 7; j >= 0; --j){
+                        squares[boardIndex++].textContent = (board & bit >> (BigInt(i) * 8n + BigInt(j)) ? "1" : "0");
+                    }
+                }
+            }
+        </script>
+    </body>
+</html>
