@@ -12,7 +12,8 @@ namespace Arktos
         Board();
         ~Board();
 
-        void Init(const std::string &fenStr);
+        void Init();
+        void SetFEN(const std::string &fenStr);
         std::string GetBitBoardStr(EPiece type) const;
 
         void MakeMove(Move move);
@@ -42,6 +43,15 @@ namespace Arktos
         EColor sideToMove = EColor::White;
         int fullMoveClock = 0;
         std::vector<BoardState> StateHistory;
+
+        /*
+         * I got the idea to implement this from somewhere (I can't remember where specifically),
+         * where the attack pattern for every piece type was stored for every square on the board.
+         * I get the sense this would help for move generation or detecting check but I'm not
+         * sure how yet. Want to compare this against other approaches.
+         */
+        // A table of the attack patterns for every piece type on any given square
+        static U64 PseudoAttackBoards[static_cast<int>(EAttackType::B_Pawn) + 1][64];
         static constexpr U64 FILE_H = 0x8080808080808080;
         static constexpr U64 RANK_1 = 0xFF;
         static constexpr U64 RANK_2 = 0xFF00;

@@ -7,7 +7,12 @@
 Arktos::Board::Board()
 {}
 
-void Arktos::Board::Init(const std::string &fenStr)
+void Arktos::Board::Init()
+{
+
+}
+
+void Arktos::Board::SetFEN(const std::string &fenStr)
 {
     std::istringstream fenStream(fenStr == "startpos" ? START_POS : fenStr);
     char token;
@@ -580,6 +585,11 @@ std::vector<Arktos::Move> Arktos::Board::GenerateLegalMoves() const
 {
     std::vector<Arktos::Move> moves;
 
+    /*
+     * Generate a BitBoard of moves a piece is allowed to make (i.e. spaces that are empty or have an enemy piece).
+     * For all the bits in that board, build a move for that from/to, test for check (make, test, unmake), and add to list if legal
+     */
+
     for (EPiece p = EPiece::W_Pawn; p != EPiece::Invalid; ++p)
     {
 
@@ -587,6 +597,14 @@ std::vector<Arktos::Move> Arktos::Board::GenerateLegalMoves() const
 
     return moves;
 }
+
+/*
+ *TODO:
+ * bool CanEnPassant()
+ * check if there is an enemy pawn directly adjacent to the moving pawn
+ * might just have to do a 'is _ king in check in _ board position'
+ * then have that run for the pawn(s) that can attack.
+ */
 
 void Arktos::Board::MakeMove(Move move)
 {
@@ -669,6 +687,13 @@ void Arktos::Board::MakeMove(Move move)
             bitBoard.Pieces[static_cast<int>(promotedType)] ^= dest;
             newState.EnpassantSquare = ESquare::ER;
         }
+        /*
+         *TODO:
+         * Other chess engines ONLY update Enpassant when the side to move legally can perform one
+         * So instead of what I'm doing now where it updates after every double push,
+         * I need to check if a pawn can take this turn, and check for legality
+         * (see if that move puts the King in check)
+         */
         else if (movedType == EPiece::W_Pawn && start & RANK_2 && dest & RANK_4)
         {
             newState.EnpassantSquare = static_cast<ESquare>(dest >> 8);

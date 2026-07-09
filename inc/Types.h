@@ -44,6 +44,17 @@ namespace Arktos
 	    Invalid
     };
 
+    enum class EAttackType : unsigned short int
+    {
+        King,
+        Queen,
+        Bishop,
+        Knight,
+        Rook,
+        W_Pawn,
+        B_Pawn
+    };
+
     inline EPiece operator++ (EPiece& piece) { piece = static_cast<EPiece>(static_cast<int>(piece) + 1); return piece; }
     inline EPiece operator++ (EPiece& piece, int) { EPiece old = piece; piece = static_cast<EPiece>(static_cast<int>(piece) + 1); return old; }
 
@@ -58,6 +69,7 @@ namespace Arktos
     {
 	    U64 Pieces[static_cast<int>(EPiece::B_King) + 1] = {};
 	    U64 PiecesByColor[static_cast<short>(EColor::Black) + 1] = {};
+        U64 AttackBB[static_cast<int>(EAttackType::B_Pawn) + 1] = {};
     };
 
     struct BoardState

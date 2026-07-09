@@ -25,7 +25,9 @@ int main(int argc, char** argv)
 
         if (file.is_open())
         {
-            board.Init("startpos");
+            std::cout << "Reading " << argv[2] << "/game" << i << ".txt...\n";
+            board.Init();
+            board.SetFEN("startpos");
             while (std::getline(file, line))
             {
                 try
