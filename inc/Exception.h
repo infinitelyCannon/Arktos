@@ -9,7 +9,7 @@ namespace Arktos
     public:
         StateException(const char* msg) : message(msg){}
 
-        const char* what() const override
+        const char* what() const noexcept override
         {
             return message;
         }

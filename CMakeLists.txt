@@ -8,7 +8,7 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
   	set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 endif()
 
-option(INCLUDE_EXAMPLE "The optional executable for testing the engine" OFF)
+option(INCLUDE_EXAMPLE "Option to build as a standalone executable" OFF)
 
 add_subdirectory(src)
 
