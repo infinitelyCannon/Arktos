@@ -4,12 +4,45 @@
 #include <sstream>
 #include <cassert>
 
+Arktos::U64 Arktos::Board::PawnAtkBB[static_cast<int>(EColor::None)][64] = {};
+Arktos::U64 Arktos::Board::PseudoAtkBB[2][64] = {};
+
+
 Arktos::Board::Board()
 {}
 
 void Arktos::Board::Init()
 {
+    for (int c = EColor::White; c < EColor::None; ++c)
+    {
+        for (int sq = 0; sq < 64; ++sq)
+        {
+            U64 square = 1ULL << sq;
+            U64 east = c == White ? square << 9 & ~FILE_A : square >> 7 & ~FILE_A;
+            U64 west = c == White ? square << 7 & ~FILE_H : square >> 9 & ~FILE_H;
+            PawnAtkBB[c][sq] = east | west;
+        }
+    }
 
+    for (int sq = 0; sq < 64; ++sq)
+    {
+        U64 square = 1ULL << sq;
+        U64 attacks = square << 1 & ~FILE_A | square >> 1 & ~FILE_H;
+        attacks |= square;
+        attacks |= attacks << 8 | attacks >> 8;
+        PseudoAtkBB[0][sq] = attacks ^ square;
+
+        U64 east, west;
+        east = square << 1 & ~FILE_A;
+        west = square >> 1 & ~FILE_H;
+        attacks = (east | west) << 16;
+        attacks |= (east | west) >> 16;
+        east = east << 1 & ~FILE_A;
+        west = west >> 1 & ~FILE_H;
+        attacks |= (east | west) << 8;
+        attacks |= (east | west) >> 8;
+        PseudoAtkBB[1][sq] = attacks;
+    }
 }
 
 void Arktos::Board::SetFEN(const std::string &fenStr)
@@ -207,8 +240,6 @@ void Arktos::Board::SetFEN(const std::string &fenStr)
 
     fenStream >> token;
     fullMoveClock = std::stoi(&token);
-
-    std::cout << "Ready." << std::endl;
 }
 
 void Arktos::Board::CheckFEN(std::string fen)
@@ -511,7 +542,7 @@ Arktos::Move Arktos::Board::ParseMove(std::string str) const
 
     if (bitBoard.Pieces[pieceIdx] & static_cast<U64>(from) && to == StateHistory.back().EnpassantSquare)
     {
-        capturedType = sideToMove == EColor::White ? EPiece::B_Pawn : EPiece::B_Pawn;
+        capturedType = sideToMove == EColor::White ? EPiece::B_Pawn : EPiece::W_Pawn;
     }
     else if (bitBoard.Pieces[static_cast<int>(EPiece::Empty)] & static_cast<U64>(to))
     {

@@ -46,7 +46,22 @@ namespace Arktos
 
         static U64 PawnAtkBB[static_cast<int>(EColor::None)][64];
         static U64 PseudoAtkBB[2][64];
-        //TODO: Magic Bitboards
+        /*TODO: Magic Bitboards
+         * Data:
+         * Add the rook, bishop, queen empty attack bitboards to the PseudoAtkBB (might not need this)
+         * Add arrays for the sliding masks for MagicBB generations
+         * 2D bitboard table for the actual rook/bishop hashmap
+         * 2D array for ray attacks per direction for each square
+         * Steps:
+         * Precalculate the ray attacks
+         * Precalculate sliding masks and magic numbers
+         * For each square:
+         * For each blocker combination 1 << indexBits:
+         * get the blocker bitboard
+         * do the operation to get the hash index
+         * set the magicBB at that square/index to the calculated sliding attack
+         */
+        static constexpr U64 FILE_A = 0x101010101010101;
         static constexpr U64 FILE_H = 0x8080808080808080;
         static constexpr U64 RANK_1 = 0xFF;
         static constexpr U64 RANK_2 = 0xFF00;

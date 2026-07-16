@@ -21,6 +21,11 @@ namespace Arktos
     };
     #undef BIT
 
+    enum Test : int
+    {
+        A1,B1,C1,D1,E1,F1,G1,H1,NO
+    };
+
     inline ESquare operator+  (const ESquare &square, const int &b) {return square == ESquare::H8 ? ESquare::H8 : static_cast<ESquare>(static_cast<U64>(square) << b);}
     inline ESquare operator-  (const ESquare &square, const int &b) {return square == ESquare::A1 ? ESquare::A1 : static_cast<ESquare>(static_cast<U64>(square) >> b);}
     inline ESquare operator++ (ESquare &square) {square = square + 1; return square;}
@@ -58,7 +63,7 @@ namespace Arktos
     inline EPiece operator++ (EPiece& piece) { piece = static_cast<EPiece>(static_cast<int>(piece) + 1); return piece; }
     inline EPiece operator++ (EPiece& piece, int) { EPiece old = piece; piece = static_cast<EPiece>(static_cast<int>(piece) + 1); return old; }
 
-    enum class EColor : unsigned short int
+    enum EColor : unsigned short int
     {
 	    White,
 	    Black,
