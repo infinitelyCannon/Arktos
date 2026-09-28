@@ -4,5 +4,8 @@ build/
 # Visual Studio cache
 .vs/
 
+# Visual Studio Code
+.vscode/
+
 # JetBrains (CLion) IDE
 .idea/
