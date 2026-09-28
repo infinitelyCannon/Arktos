@@ -2,7 +2,7 @@
 
 #include <vector>
 #include <string>
-#include "Types.h"
+#include "BitBoard.h"
 
 namespace Arktos
 {
@@ -39,13 +39,12 @@ namespace Arktos
     private:
         void SplitStr(std::vector<std::string>& list, const std::string& str, const char* subStr = " ") const;
 
-        BitBoard bitBoard;
-        EColor sideToMove = EColor::White;
+        BitBoard Pieces[PIECE_Invalid] = {0};
+        BitBoard Colors[COLOR_None] = {0};
+        EColor sideToMove = COLOR_White;
         int fullMoveClock = 0;
         std::vector<BoardState> StateHistory;
 
-        static U64 PawnAtkBB[static_cast<int>(EColor::None)][64];
-        static U64 PseudoAtkBB[2][64];
         /*TODO: Magic Bitboards
          * Data:
          * Add the rook, bishop, queen empty attack bitboards to the PseudoAtkBB (might not need this)
@@ -61,14 +60,14 @@ namespace Arktos
          * do the operation to get the hash index
          * set the magicBB at that square/index to the calculated sliding attack
          */
-        static constexpr U64 FILE_A = 0x101010101010101;
-        static constexpr U64 FILE_H = 0x8080808080808080;
-        static constexpr U64 RANK_1 = 0xFF;
-        static constexpr U64 RANK_2 = 0xFF00;
-        static constexpr U64 RANK_4 = 0xFF000000;
-        static constexpr U64 RANK_5 = 0xFF00000000;
-        static constexpr U64 RANK_7 = 0xFF000000000000;
-        static constexpr U64 RANK_8 = 0xFF00000000000000;
+        static constexpr BitBoard FILE_A = 0x101010101010101;
+        static constexpr BitBoard FILE_H = 0x8080808080808080;
+        static constexpr BitBoard RANK_1 = 0xFF;
+        static constexpr BitBoard RANK_2 = 0xFF00;
+        static constexpr BitBoard RANK_4 = 0xFF000000;
+        static constexpr BitBoard RANK_5 = 0xFF00000000;
+        static constexpr BitBoard RANK_7 = 0xFF000000000000;
+        static constexpr BitBoard RANK_8 = 0xFF00000000000000;
 
         /*
           ____ ____ ____ KQkq

@@ -3,6 +3,8 @@
 #include <iostream>
 #include <fstream>
 #include <format>
+
+#include "Arktos.h"
 #include "Board.h"
 #include "Types.h"
 
@@ -13,6 +15,8 @@ int main(int argc, char** argv)
         std::cerr << "Usage: MoveStateTest NUM_OF_GAMES PATH_TO_FILE(S)" << std::endl;
         return 1;
     }
+
+    Arktos::PrintVersion();
 
     const int numGames = std::stoi(argv[1]);
     Arktos::Board board;

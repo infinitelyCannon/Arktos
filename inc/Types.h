@@ -1,87 +1,79 @@
 ﻿#pragma once
 
 #include <cmath>
+#include <cstdint>
 
 namespace Arktos
 {
-    typedef unsigned long long U64;
+    typedef uint64_t BitBoard;
 
-    #define BIT(s, b) s = 1ULL << b
-    enum class ESquare : U64
+    enum ESquare : unsigned int
     {
-        BIT(A1, 0), BIT(B1, 1), BIT(C1, 2), BIT(D1, 3), BIT(E1, 4), BIT(F1, 5), BIT(G1, 6), BIT(H1, 7),
-	    BIT(A2, 8), BIT(B2, 9), BIT(C2, 10), BIT(D2, 11), BIT(E2, 12), BIT(F2, 13), BIT(G2, 14), BIT(H2, 15),
-	    BIT(A3, 16), BIT(B3, 17), BIT(C3, 18), BIT(D3, 19), BIT(E3, 20), BIT(F3, 21), BIT(G3, 22), BIT(H3, 23),
-	    BIT(A4, 24), BIT(B4, 25), BIT(C4, 26), BIT(D4, 27), BIT(E4, 28), BIT(F4, 29), BIT(G4, 30), BIT(H4, 31),
-	    BIT(A5, 32), BIT(B5, 33), BIT(C5, 34), BIT(D5, 35), BIT(E5, 36), BIT(F5, 37), BIT(G5, 38), BIT(H5, 39),
-	    BIT(A6, 40), BIT(B6, 41), BIT(C6, 42), BIT(D6, 43), BIT(E6, 44), BIT(F6, 45), BIT(G6, 46), BIT(H6, 47),
-	    BIT(A7, 48), BIT(B7, 49), BIT(C7, 50), BIT(D7, 51), BIT(E7, 52), BIT(F7, 53), BIT(G7, 54), BIT(H7, 55),
-	    BIT(A8, 56), BIT(B8, 57), BIT(C8, 58), BIT(D8, 59), BIT(E8, 60), BIT(F8, 61), BIT(G8, 62), BIT(H8, 63),
-        ER = 0
-    };
-    #undef BIT
-
-    enum Test : int
-    {
-        A1,B1,C1,D1,E1,F1,G1,H1,NO
+        SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1,
+        SQ_A2, SQ_B2, SQ_C2, SQ_D2, SQ_E2, SQ_F2, SQ_G2, SQ_H2,
+        SQ_A3, SQ_B3, SQ_C3, SQ_D3, SQ_E3, SQ_F3, SQ_G3, SQ_H3,
+        SQ_A4, SQ_B4, SQ_C4, SQ_D4, SQ_E4, SQ_F4, SQ_G4, SQ_H4,
+        SQ_A5, SQ_B5, SQ_C5, SQ_D5, SQ_E5, SQ_F5, SQ_G5, SQ_H5,
+        SQ_A6, SQ_B6, SQ_C6, SQ_D6, SQ_E6, SQ_F6, SQ_G6, SQ_H6,
+        SQ_A7, SQ_B7, SQ_C7, SQ_D7, SQ_E7, SQ_F7, SQ_G7, SQ_H7,
+        SQ_A8, SQ_B8, SQ_C8, SQ_D8, SQ_E8, SQ_F8, SQ_G8, SQ_H8,
+        SQ_ER
     };
 
-    inline ESquare operator+  (const ESquare &square, const int &b) {return square == ESquare::H8 ? ESquare::H8 : static_cast<ESquare>(static_cast<U64>(square) << b);}
-    inline ESquare operator-  (const ESquare &square, const int &b) {return square == ESquare::A1 ? ESquare::A1 : static_cast<ESquare>(static_cast<U64>(square) >> b);}
-    inline ESquare operator++ (ESquare &square) {square = square + 1; return square;}
-    inline ESquare operator++ (ESquare &square, int) {ESquare old = square; square = square + 1; return old;}
-
-    enum class EPiece : unsigned short int
+    constexpr bool is_ok(ESquare const sq)
     {
-	    Empty,
-	    W_Pawn,
-	    W_Knight,
-	    W_Bishop,
-	    W_Rook,
-	    W_Queen,
-	    W_King,
-	    B_Pawn,
-	    B_Knight,
-	    B_Bishop,
-	    B_Rook,
-	    B_Queen,
-	    B_King,
-	    Invalid
+        return sq >= SQ_A1 && sq <= SQ_H8;
+    }
+
+    enum EPiece : int
+    {
+        PIECE_Empty,
+        PIECE_W_Pawn,
+        PIECE_W_Knight,
+        PIECE_W_Bishop,
+        PIECE_W_Rook,
+        PIECE_W_Queen,
+        PIECE_W_King,
+        PIECE_B_Pawn,
+        PIECE_B_Knight,
+        PIECE_B_Bishop,
+        PIECE_B_Rook,
+        PIECE_B_Queen,
+        PIECE_B_King,
+        PIECE_Invalid
     };
 
-    enum class EAttackType : unsigned short int
+    enum  EAttackType : unsigned short int
     {
-        King,
-        Queen,
-        Bishop,
-        Knight,
-        Rook,
-        W_Pawn,
-        B_Pawn
+        ATK_King,
+        ATK_Knight,
+        ATK_W_Pawn,
+        ATK_B_Pawn,
+        ATK_Queen,
+        ATK_Bishop,
+        ATK_Rook,
+        ATK_Invalid
     };
 
-    inline EPiece operator++ (EPiece& piece) { piece = static_cast<EPiece>(static_cast<int>(piece) + 1); return piece; }
-    inline EPiece operator++ (EPiece& piece, int) { EPiece old = piece; piece = static_cast<EPiece>(static_cast<int>(piece) + 1); return old; }
-
-    enum EColor : unsigned short int
+    enum EColor_OLD : unsigned short int
     {
 	    White,
 	    Black,
 	    None
     };
 
-    struct BitBoard
+    enum EColor : int
     {
-	    U64 Pieces[static_cast<int>(EPiece::B_King) + 1] = {};
-	    U64 PiecesByColor[static_cast<short>(EColor::Black) + 1] = {};
-        U64 AttackBB[static_cast<int>(EAttackType::B_Pawn) + 1] = {};
+        COLOR_White,
+        COLOR_Black,
+        COLOR_None
     };
 
     struct BoardState
     {
 	    //U64 Hash; Might have to be a string, gotta lookup how to generate hashes.
 	    unsigned short CastlingRights = 0;
-	    ESquare EnpassantSquare = ESquare::ER;
+	    ESquare EnpassantSquare = SQ_ER;
 	    bool InCheck = false;
 	    int Repetitions = 0;
     };
@@ -95,17 +87,17 @@ namespace Arktos
             ESquare from,
             ESquare to) : move(0)
         {
-            move |= static_cast<U64>(capturedType) << 24;
-            move |= static_cast<U64>(movedType) << 19;
-            move |= static_cast<U64>(promotedType) << 14;
+            move |= static_cast<BitBoard>(capturedType) << 24;
+            move |= static_cast<BitBoard>(movedType) << 19;
+            move |= static_cast<BitBoard>(promotedType) << 14;
             move |= queenCastle ? 8192 : 0;
             move |= kingCastle ? 4096 : 0;
-            move |= static_cast<unsigned int>(std::log2(static_cast<U64>(from))) << 6;
-            move |= static_cast<unsigned int>(std::log2(static_cast<U64>(to)));
+            move |= static_cast<uint32_t>(from) << 6;
+            move |= static_cast<uint32_t>(to);
         }
 
-        inline U64 GetTo() const {return 1ULL << (move & 0x3F);}
-        inline U64 GetFrom() const {return 1ULL << (move >> 6 & 0x3F);}
+        inline BitBoard GetTo() const {return 1ULL << (move & 0x3F);}
+        inline BitBoard GetFrom() const {return 1ULL << (move >> 6 & 0x3F);}
         inline EPiece GetMovedPiece() const {return static_cast<EPiece>(move >> 19 & 0x1F);}
         inline EPiece GetCapturedPiece() const {return static_cast<EPiece>(move >> 24 & 0x1F);}
         inline bool KingSideCastle() const {return move & 4096;}
@@ -124,6 +116,6 @@ namespace Arktos
          * From ESquare (a 0-63 int for left shifting) (6)
          * To ESquare (a 0-63 int for left shifting) (6)
         */
-        unsigned int move = 0;
+        uint32_t move = 0;
     };
 }

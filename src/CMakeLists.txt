@@ -15,7 +15,8 @@ if(WIN32)
 	set(PLATFORM_FILES "win/UTF8CodePage.cpp" "${Arktos_SOURCE_DIR}/inc/win/UTF8CodePage.h")
 endif()
 
-add_library(Arktos STATIC Arktos.cpp ${PLATFORM_FILES} ${HEADER_LIST} "Board.cpp")
+add_library(Arktos STATIC Arktos.cpp ${PLATFORM_FILES} ${HEADER_LIST} "Board.cpp"
+        BitBoard.cpp)
 
 target_include_directories(Arktos PUBLIC ../inc)
 

@@ -4,35 +4,32 @@
 #include <sstream>
 #include <cassert>
 
-Arktos::U64 Arktos::Board::PawnAtkBB[static_cast<int>(EColor::None)][64] = {};
-Arktos::U64 Arktos::Board::PseudoAtkBB[2][64] = {};
-
-
 Arktos::Board::Board()
 {}
 
 void Arktos::Board::Init()
 {
-    for (int c = EColor::White; c < EColor::None; ++c)
+    for (int c = COLOR_White; c < COLOR_None; ++c)
     {
-        for (int sq = 0; sq < 64; ++sq)
+        for (int sq = SQ_A1; sq < SQ_ER; ++sq)
         {
-            U64 square = 1ULL << sq;
-            U64 east = c == White ? square << 9 & ~FILE_A : square >> 7 & ~FILE_A;
-            U64 west = c == White ? square << 7 & ~FILE_H : square >> 9 & ~FILE_H;
-            PawnAtkBB[c][sq] = east | west;
+            BitBoard square = 1ULL << sq;
+            int index = c == COLOR_White ? ATK_W_Pawn : ATK_B_Pawn;
+            BitBoard east = c == COLOR_White ? square << 9 & ~FILE_A : square >> 7 & ~FILE_A;
+            BitBoard west = c == COLOR_White ? square << 7 & ~FILE_H : square >> 9 & ~FILE_H;
+            AttackBB[index][sq] = east | west;
         }
     }
 
-    for (int sq = 0; sq < 64; ++sq)
+    for (int sq = SQ_A1; sq < SQ_ER; ++sq)
     {
-        U64 square = 1ULL << sq;
-        U64 attacks = square << 1 & ~FILE_A | square >> 1 & ~FILE_H;
+        BitBoard square = 1ULL << sq;
+        BitBoard attacks = square << 1 & ~FILE_A | square >> 1 & ~FILE_H;
         attacks |= square;
         attacks |= attacks << 8 | attacks >> 8;
-        PseudoAtkBB[0][sq] = attacks ^ square;
+        AttackBB[ATK_King][sq] = attacks ^ square;
 
-        U64 east, west;
+        BitBoard east, west;
         east = square << 1 & ~FILE_A;
         west = square >> 1 & ~FILE_H;
         attacks = (east | west) << 16;
@@ -41,7 +38,7 @@ void Arktos::Board::Init()
         west = west >> 1 & ~FILE_H;
         attacks |= (east | west) << 8;
         attacks |= (east | west) >> 8;
-        PseudoAtkBB[1][sq] = attacks;
+        AttackBB[ATK_Knight][sq] = attacks;
     }
 }
 
@@ -53,86 +50,86 @@ void Arktos::Board::SetFEN(const std::string &fenStr)
     fenStream >> std::noskipws;
     StateHistory.clear();
 
-    ESquare sq = ESquare::A8;
+    BitBoard sq = SquareBB(SQ_A8);
 
 #define SET_BIT_SQR(type) \
-    for (EPiece p = EPiece::Empty; p != EPiece::Invalid; ++p) \
+    for (int p = PIECE_Empty; p != PIECE_Invalid; ++p) \
     { \
-        bitBoard.Pieces[static_cast<int>(p)] |= p == EPiece::type ? static_cast<U64>(sq) : 0; \
+        Pieces[p] |= p == EPiece::type ? sq : 0; \
     }
 #define SET_BLACK_BIT() \
-    bitBoard.PiecesByColor[static_cast<int>(EColor::White)] |= 0; \
-    bitBoard.PiecesByColor[static_cast<int>(EColor::Black)] |= static_cast<U64>(sq);
+    Colors[COLOR_White] |= 0; \
+    Colors[COLOR_Black] |= sq;
 #define SET_WHITE_BIT() \
-    bitBoard.PiecesByColor[static_cast<int>(EColor::White)] |= static_cast<U64>(sq); \
-    bitBoard.PiecesByColor[static_cast<int>(EColor::Black)] |= 0;
+    Colors[COLOR_White] |= sq; \
+    Colors[COLOR_Black] |= 0;
 
     while ((fenStream >> token) && !isspace(token))
     {
         switch (token)
         {
             case 'r':
-                SET_BIT_SQR(B_Rook)
+                SET_BIT_SQR(PIECE_B_Rook)
                 SET_BLACK_BIT()
-                sq = static_cast<U64>(sq) & FILE_H ? sq - 7 : sq + 1;
+                sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case 'n':
-                SET_BIT_SQR(B_Knight)
+                SET_BIT_SQR(PIECE_B_Knight)
                 SET_BLACK_BIT()
-                sq = static_cast<U64>(sq) & FILE_H ? sq - 7 : sq + 1;
+                sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case 'b':
-                SET_BIT_SQR(B_Bishop)
+                SET_BIT_SQR(PIECE_B_Bishop)
                 SET_BLACK_BIT()
-                sq = static_cast<U64>(sq) & FILE_H ? sq - 7 : sq + 1;
+                sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case 'q':
-                SET_BIT_SQR(B_Queen)
+                SET_BIT_SQR(PIECE_B_Queen)
                 SET_BLACK_BIT()
-                sq = static_cast<U64>(sq) & FILE_H ? sq - 7 : sq + 1;
+                sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case 'k':
-                SET_BIT_SQR(B_King)
+                SET_BIT_SQR(PIECE_B_King)
                 SET_BLACK_BIT()
-                sq = static_cast<U64>(sq) & FILE_H ? sq - 7 : sq + 1;
+                sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case 'p':
-                SET_BIT_SQR(B_Pawn)
+                SET_BIT_SQR(PIECE_B_Pawn)
                 SET_BLACK_BIT()
-                sq = static_cast<U64>(sq) & FILE_H ? sq - 7 : sq + 1;
+                sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case 'R':
-                SET_BIT_SQR(W_Rook)
+                SET_BIT_SQR(PIECE_W_Rook)
                 SET_WHITE_BIT()
-                sq = static_cast<U64>(sq) & FILE_H ? sq - 7 : sq + 1;
+                sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case 'N':
-                SET_BIT_SQR(W_Knight)
+                SET_BIT_SQR(PIECE_W_Knight)
                 SET_WHITE_BIT()
-                sq = static_cast<U64>(sq) & FILE_H ? sq - 7 : sq + 1;
+                sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case 'B':
-                SET_BIT_SQR(W_Bishop)
+                SET_BIT_SQR(PIECE_W_Bishop)
                 SET_WHITE_BIT()
-                sq = static_cast<U64>(sq) & FILE_H ? sq - 7 : sq + 1;
+                sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case 'Q':
-                SET_BIT_SQR(W_Queen)
+                SET_BIT_SQR(PIECE_W_Queen)
                 SET_WHITE_BIT()
-                sq = static_cast<U64>(sq) & FILE_H ? sq - 7 : sq + 1;
+                sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case 'K':
-                SET_BIT_SQR(W_King)
+                SET_BIT_SQR(PIECE_W_King)
                 SET_WHITE_BIT()
-                sq = static_cast<U64>(sq) & FILE_H ? sq - 7 : sq + 1;
+                sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case 'P':
-                SET_BIT_SQR(W_Pawn)
+                SET_BIT_SQR(PIECE_W_Pawn)
                 SET_WHITE_BIT()
-                sq = static_cast<U64>(sq) & FILE_H ? sq - 7 : sq + 1;
+                sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case '/':
-                sq = sq - 8;
+                sq = sq >> 8;
                 break;
             case '8':
             case '7':
@@ -144,16 +141,16 @@ void Arktos::Board::SetFEN(const std::string &fenStr)
             case '1':
             {
                 const int j = std::stoi(&token);
-                const ESquare end = sq + (j - 1);
-                for (; sq <= end; ++sq)
+                const BitBoard end = sq << (j - 1);
+                for (; sq <= end; sq = sq << 1)
                 {
-                    SET_BIT_SQR(Empty)
-                    bitBoard.PiecesByColor[static_cast<int>(EColor::White)] =
-                        ~static_cast<U64>(sq) & bitBoard.PiecesByColor[static_cast<int>(EColor::White)];
-                    bitBoard.PiecesByColor[static_cast<int>(EColor::Black)] =
-                        ~static_cast<U64>(sq) & bitBoard.PiecesByColor[static_cast<int>(EColor::Black)];
+                    SET_BIT_SQR(PIECE_Empty)
+                    Colors[COLOR_White] =
+                        ~sq & Colors[COLOR_White];
+                    Colors[COLOR_Black] =
+                        ~sq & Colors[COLOR_Black];
                 }
-                sq = static_cast<U64>(end) & FILE_H ? end - 7 : sq;
+                sq = end & FILE_H ? end >> 7 : sq;
             }
                 break;
             default:
@@ -165,7 +162,7 @@ void Arktos::Board::SetFEN(const std::string &fenStr)
 #undef SET_WHITE_BIT
 
     fenStream >> token;
-    sideToMove = token == 'w' ? EColor::White : EColor::Black;
+    sideToMove = token == 'w' ? COLOR_White : COLOR_Black;
     fenStream >> token;
 
     StateHistory.emplace_back();
@@ -231,7 +228,7 @@ void Arktos::Board::SetFEN(const std::string &fenStr)
         fenStream >> token;
         const int rank = std::stoi(&token);
 
-        StateHistory[0].EnpassantSquare = static_cast<ESquare>(1ULL << ((rank - 1) * 8 + file));
+        StateHistory[0].EnpassantSquare = static_cast<ESquare>((rank - 1) * 8 + file);
     }
 
     fenStream >> std::skipws;
@@ -244,7 +241,7 @@ void Arktos::Board::SetFEN(const std::string &fenStr)
 
 void Arktos::Board::CheckFEN(std::string fen)
 {
-    ESquare sq = ESquare::A8;
+    BitBoard sq = SquareBB(SQ_A8);
     std::istringstream fenStream(fen);
     char token;
 
@@ -255,79 +252,79 @@ void Arktos::Board::CheckFEN(std::string fen)
         switch (token)
         {
             case 'r':
-                StateException::Check(bitBoard.Pieces[static_cast<int>(EPiece::B_Rook)] & static_cast<U64>(sq), "Black Rook bitboard does not match FEN string.");
-                StateException::Check(!(bitBoard.Pieces[static_cast<int>(EPiece::Empty)] & static_cast<U64>(sq)), "Empty bitboard reports non-empty square as empty.");
-                StateException::Check(bitBoard.PiecesByColor[static_cast<int>(EColor::Black)] & static_cast<U64>(sq), "Black bitboard does not match FEN string.");
-                sq = static_cast<U64>(sq) & FILE_H ? sq - 7 : sq + 1;
+                StateException::Check(Pieces[PIECE_B_Rook] & sq, "Black Rook bitboard does not match FEN string.");
+                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports non-empty square as empty.");
+                StateException::Check(Colors[COLOR_Black] & sq, "Black bitboard does not match FEN string.");
+                sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case 'n':
-                StateException::Check(bitBoard.Pieces[static_cast<int>(EPiece::B_Knight)] & static_cast<U64>(sq), "Black Knight bitboard does not match FEN string.");
-                StateException::Check(!(bitBoard.Pieces[static_cast<int>(EPiece::Empty)] & static_cast<U64>(sq)), "Empty bitboard reports non-empty square as empty.");
-                StateException::Check(bitBoard.PiecesByColor[static_cast<int>(EColor::Black)] & static_cast<U64>(sq), "Black bitboard does not match FEN string.");
-                sq = static_cast<U64>(sq) & FILE_H ? sq - 7 : sq + 1;
+                StateException::Check(Pieces[PIECE_B_Knight] & sq, "Black Knight bitboard does not match FEN string.");
+                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports non-empty square as empty.");
+                StateException::Check(Colors[COLOR_Black] & sq, "Black bitboard does not match FEN string.");
+                sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case 'b':
-                StateException::Check(bitBoard.Pieces[static_cast<int>(EPiece::B_Bishop)] & static_cast<U64>(sq), "Black Bishop bitboard does not match FEN string.");
-                StateException::Check(!(bitBoard.Pieces[static_cast<int>(EPiece::Empty)] & static_cast<U64>(sq)), "Empty bitboard reports non-empty square as empty.");
-                StateException::Check(bitBoard.PiecesByColor[static_cast<int>(EColor::Black)] & static_cast<U64>(sq), "Black bitboard does not match FEN string.");
-                sq = static_cast<U64>(sq) & FILE_H ? sq - 7 : sq + 1;
+                StateException::Check(Pieces[PIECE_B_Bishop] & sq, "Black Bishop bitboard does not match FEN string.");
+                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports non-empty square as empty.");
+                StateException::Check(Colors[COLOR_Black] & sq, "Black bitboard does not match FEN string.");
+                sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case 'q':
-                StateException::Check(bitBoard.Pieces[static_cast<int>(EPiece::B_Queen)] & static_cast<U64>(sq), "Black Queen bitboard does not match FEN string.");
-                StateException::Check(!(bitBoard.Pieces[static_cast<int>(EPiece::Empty)] & static_cast<U64>(sq)), "Empty bitboard reports non-empty square as empty.");
-                StateException::Check(bitBoard.PiecesByColor[static_cast<int>(EColor::Black)] & static_cast<U64>(sq), "Black bitboard does not match FEN string.");
-                sq = static_cast<U64>(sq) & FILE_H ? sq - 7 : sq + 1;
+                StateException::Check(Pieces[PIECE_B_Queen] & sq, "Black Queen bitboard does not match FEN string.");
+                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports non-empty square as empty.");
+                StateException::Check(Colors[COLOR_Black] & sq, "Black bitboard does not match FEN string.");
+                sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case 'k':
-                StateException::Check(bitBoard.Pieces[static_cast<int>(EPiece::B_King)] & static_cast<U64>(sq), "Black King bitboard does not match FEN string.");
-                StateException::Check(!(bitBoard.Pieces[static_cast<int>(EPiece::Empty)] & static_cast<U64>(sq)), "Empty bitboard reports non-empty square as empty.");
-                StateException::Check(bitBoard.PiecesByColor[static_cast<int>(EColor::Black)] & static_cast<U64>(sq), "Black bitboard does not match FEN string.");
-                sq = static_cast<U64>(sq) & FILE_H ? sq - 7 : sq + 1;
+                StateException::Check(Pieces[PIECE_B_King] & sq, "Black King bitboard does not match FEN string.");
+                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports non-empty square as empty.");
+                StateException::Check(Colors[COLOR_Black] & sq, "Black bitboard does not match FEN string.");
+                sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case 'p':
-                StateException::Check(bitBoard.Pieces[static_cast<int>(EPiece::B_Pawn)] & static_cast<U64>(sq), "Black Pawn bitboard does not match FEN string.");
-                StateException::Check(!(bitBoard.Pieces[static_cast<int>(EPiece::Empty)] & static_cast<U64>(sq)), "Empty bitboard reports non-empty square as empty.");
-                StateException::Check(bitBoard.PiecesByColor[static_cast<int>(EColor::Black)] & static_cast<U64>(sq), "Black bitboard does not match FEN string.");
-                sq = static_cast<U64>(sq) & FILE_H ? sq - 7 : sq + 1;
+                StateException::Check(Pieces[PIECE_B_Pawn] & sq, "Black Pawn bitboard does not match FEN string.");
+                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports non-empty square as empty.");
+                StateException::Check(Colors[COLOR_Black] & sq, "Black bitboard does not match FEN string.");
+                sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case 'R':
-                StateException::Check(bitBoard.Pieces[static_cast<int>(EPiece::W_Rook)] & static_cast<U64>(sq), "White Rook bitboard does not match FEN string.");
-                StateException::Check(!(bitBoard.Pieces[static_cast<int>(EPiece::Empty)] & static_cast<U64>(sq)), "Empty bitboard reports non-empty square as empty.");
-                StateException::Check(bitBoard.PiecesByColor[static_cast<int>(EColor::White)] & static_cast<U64>(sq), "White bitboard does not match FEN string.");
-                sq = static_cast<U64>(sq) & FILE_H ? sq - 7 : sq + 1;
+                StateException::Check(Pieces[PIECE_W_Rook] & sq, "White Rook bitboard does not match FEN string.");
+                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports non-empty square as empty.");
+                StateException::Check(Colors[COLOR_White] & sq, "White bitboard does not match FEN string.");
+                sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case 'N':
-                StateException::Check(bitBoard.Pieces[static_cast<int>(EPiece::W_Knight)] & static_cast<U64>(sq), "White Knight bitboard does not match FEN string.");
-                StateException::Check(!(bitBoard.Pieces[static_cast<int>(EPiece::Empty)] & static_cast<U64>(sq)), "Empty bitboard reports non-empty square as empty.");
-                StateException::Check(bitBoard.PiecesByColor[static_cast<int>(EColor::White)] & static_cast<U64>(sq), "White bitboard does not match FEN string.");
-                sq = static_cast<U64>(sq) & FILE_H ? sq - 7 : sq + 1;
+                StateException::Check(Pieces[PIECE_W_Knight] & sq, "White Knight bitboard does not match FEN string.");
+                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports non-empty square as empty.");
+                StateException::Check(Colors[COLOR_White] & sq, "White bitboard does not match FEN string.");
+                sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case 'B':
-                StateException::Check(bitBoard.Pieces[static_cast<int>(EPiece::W_Bishop)] & static_cast<U64>(sq), "White Bishop bitboard does not match FEN string.");
-                StateException::Check(!(bitBoard.Pieces[static_cast<int>(EPiece::Empty)] & static_cast<U64>(sq)), "Empty bitboard reports non-empty square as empty.");
-                StateException::Check(bitBoard.PiecesByColor[static_cast<int>(EColor::White)] & static_cast<U64>(sq), "White bitboard does not match FEN string.");
-                sq = static_cast<U64>(sq) & FILE_H ? sq - 7 : sq + 1;
+                StateException::Check(Pieces[PIECE_W_Bishop] & sq, "White Bishop bitboard does not match FEN string.");
+                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports non-empty square as empty.");
+                StateException::Check(Colors[COLOR_White] & sq, "White bitboard does not match FEN string.");
+                sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case 'Q':
-                StateException::Check(bitBoard.Pieces[static_cast<int>(EPiece::W_Queen)] & static_cast<U64>(sq), "White Queen bitboard does not match FEN string.");
-                StateException::Check(!(bitBoard.Pieces[static_cast<int>(EPiece::Empty)] & static_cast<U64>(sq)), "Empty bitboard reports non-empty square as empty.");
-                StateException::Check(bitBoard.PiecesByColor[static_cast<int>(EColor::White)] & static_cast<U64>(sq), "White bitboard does not match FEN string.");
-                sq = static_cast<U64>(sq) & FILE_H ? sq - 7 : sq + 1;
+                StateException::Check(Pieces[PIECE_W_Queen] & sq, "White Queen bitboard does not match FEN string.");
+                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports non-empty square as empty.");
+                StateException::Check(Colors[COLOR_White] & sq, "White bitboard does not match FEN string.");
+                sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case 'K':
-                StateException::Check(bitBoard.Pieces[static_cast<int>(EPiece::W_King)] & static_cast<U64>(sq), "White King bitboard does not match FEN string.");
-                StateException::Check(!(bitBoard.Pieces[static_cast<int>(EPiece::Empty)] & static_cast<U64>(sq)), "Empty bitboard reports non-empty square as empty.");
-                StateException::Check(bitBoard.PiecesByColor[static_cast<int>(EColor::White)] & static_cast<U64>(sq), "White bitboard does not match FEN string.");
-                sq = static_cast<U64>(sq) & FILE_H ? sq - 7 : sq + 1;
+                StateException::Check(Pieces[PIECE_W_King] & sq, "White King bitboard does not match FEN string.");
+                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports non-empty square as empty.");
+                StateException::Check(Colors[COLOR_White] & sq, "White bitboard does not match FEN string.");
+                sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case 'P':
-                StateException::Check(bitBoard.Pieces[static_cast<int>(EPiece::W_Pawn)] & static_cast<U64>(sq), "White Pawn bitboard does not match FEN string.");
-                StateException::Check(!(bitBoard.Pieces[static_cast<int>(EPiece::Empty)] & static_cast<U64>(sq)), "Empty bitboard reports non-empty square as empty.");
-                StateException::Check(bitBoard.PiecesByColor[static_cast<int>(EColor::White)] & static_cast<U64>(sq), "White bitboard does not match FEN string.");
-                sq = static_cast<U64>(sq) & FILE_H ? sq - 7 : sq + 1;
+                StateException::Check(Pieces[PIECE_W_Pawn] & sq, "White Pawn bitboard does not match FEN string.");
+                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports non-empty square as empty.");
+                StateException::Check(Colors[COLOR_White] & sq, "White bitboard does not match FEN string.");
+                sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case '/':
-                sq = sq - 8;
+                sq = sq >> 8;
                 break;
             case '1':
             case '2':
@@ -339,28 +336,28 @@ void Arktos::Board::CheckFEN(std::string fen)
             case '8':
             {
                 const int j = std::stoi(&token);
-                const ESquare end = sq + (j - 1);
+                const BitBoard end = sq << (j - 1);
 
-                for (; sq <= end; ++sq)
+                for (; sq <= end; sq = sq << 1)
                 {
-                    StateException::Check(bitBoard.Pieces[static_cast<int>(EPiece::Empty)] & static_cast<U64>(sq), "Bitboard reported as not empty for empty FEN square.");
-                    StateException::Check(!(bitBoard.PiecesByColor[static_cast<int>(EColor::Black)] & static_cast<U64>(sq)), "Black bitboard reported occupied for an empty FEN square.");
-                    StateException::Check(!(bitBoard.PiecesByColor[static_cast<int>(EColor::White)] & static_cast<U64>(sq)), "White bitboard reported occupied for an empty FEN square.");
-                    for (EPiece p = EPiece::W_Pawn; p != EPiece::Invalid; ++p)
+                    StateException::Check(Pieces[PIECE_Empty] & sq, "Bitboard reported as not empty for empty FEN square.");
+                    StateException::Check(!(Colors[COLOR_Black] & sq), "Black bitboard reported occupied for an empty FEN square.");
+                    StateException::Check(!(Colors[COLOR_White] & sq), "White bitboard reported occupied for an empty FEN square.");
+                    for (int p = PIECE_W_Pawn; p != PIECE_Invalid; ++p)
                     {
                         std::ostringstream msg;
-                        msg << "Bitboard index (" << static_cast<int>(p) << ") reported occupied for an empty FEN square";
-                        StateException::Check(!(bitBoard.Pieces[static_cast<int>(p)] & static_cast<U64>(sq)), msg.str().c_str());
+                        msg << "Bitboard index (" << p << ") reported occupied for an empty FEN square";
+                        StateException::Check(!(Pieces[p] & sq), msg.str().c_str());
                     }
                 }
 
-                sq = static_cast<U64>(end) & FILE_H ? end - 7 : sq;
+                sq = end & FILE_H ? end >> 7 : sq;
             }
                 break;
 
             default:
             {
-                std::string msg = std::string("Unrecognized token in FEN string.") + std::string ({'(', token, ')'});
+                std::string msg = std::string("Unrecognized token in FEN string. ") + std::string ({'(', token, ')'});
                 throw std::invalid_argument(msg.c_str());
             }
         }
@@ -369,11 +366,11 @@ void Arktos::Board::CheckFEN(std::string fen)
     fenStream >> token;
     if (token == 'w')
     {
-        StateException::Check(sideToMove == EColor::White, "Wrong side to move reported (Expected White)");
+        StateException::Check(sideToMove == COLOR_White, "Wrong side to move reported (Expected White)");
     }
     else if (token == 'b')
     {
-        StateException::Check(sideToMove == EColor::Black, "Wrong side to move reported (Exptected Black)");
+        StateException::Check(sideToMove == COLOR_Black, "Wrong side to move reported (Exptected Black)");
     }
     else
     {
@@ -408,7 +405,7 @@ void Arktos::Board::CheckFEN(std::string fen)
     }
 
     fenStream >> token;
-    ESquare enPassant = ESquare::ER;
+    ESquare enPassant = SQ_ER;
     if (token != '-')
     {
         char file = token;
@@ -446,7 +443,7 @@ void Arktos::Board::CheckFEN(std::string fen)
         fenStream >> token;
         const int rank = std::stoi(&token);
 
-        enPassant = static_cast<ESquare>(1ULL << ((rank - 1) * 8 + file));
+        enPassant = static_cast<ESquare>((rank - 1) * 8 + file);
     }
 
     StateException::Check(StateHistory.back().EnpassantSquare == enPassant, "EnPassant Square mismatch.");
@@ -461,11 +458,11 @@ void Arktos::Board::CheckFEN(std::string fen)
 
 Arktos::Move Arktos::Board::ParseMove(std::string str) const
 {
-    ESquare from = ESquare::ER;
-    ESquare to = ESquare::ER;
-    EPiece movedType = EPiece::Invalid;
-    EPiece capturedType = EPiece::Invalid;
-    EPiece promotedType = EPiece::Invalid;
+    ESquare from = SQ_ER;
+    ESquare to = SQ_ER;
+    EPiece movedType = PIECE_Invalid;
+    EPiece capturedType = PIECE_Invalid;
+    EPiece promotedType = PIECE_Invalid;
     bool kingCastle = false;
     bool queenCastle = false;
     int file;
@@ -502,7 +499,7 @@ Arktos::Move Arktos::Board::ParseMove(std::string str) const
             break;
     }
     rank = std::stoi(&str[1]);
-    from = static_cast<ESquare>(1ULL << ((rank - 1) * 8 + file));
+    from = static_cast<ESquare>((rank - 1) * 8 + file);
 
     switch (str[2])
     {
@@ -535,32 +532,32 @@ Arktos::Move Arktos::Board::ParseMove(std::string str) const
             break;
     }
     rank = std::stoi(&str[3]);
-    to = static_cast<ESquare>(1ULL << ((rank - 1) * 8 + file));
+    to = static_cast<ESquare>((rank - 1) * 8 + file);
 
-    const int pieceIdx = sideToMove == EColor::White ? static_cast<int>(EPiece::W_Pawn) :
-        static_cast<int>(EPiece::B_Pawn);
+    const int pieceIdx = sideToMove == COLOR_White ? PIECE_W_Pawn :
+        PIECE_B_Pawn;
 
-    if (bitBoard.Pieces[pieceIdx] & static_cast<U64>(from) && to == StateHistory.back().EnpassantSquare)
+    if (Pieces[pieceIdx] & SquareBB(from) && to == StateHistory.back().EnpassantSquare)
     {
-        capturedType = sideToMove == EColor::White ? EPiece::B_Pawn : EPiece::W_Pawn;
+        capturedType = sideToMove == COLOR_White ? PIECE_B_Pawn : PIECE_W_Pawn;
     }
-    else if (bitBoard.Pieces[static_cast<int>(EPiece::Empty)] & static_cast<U64>(to))
+    else if (Pieces[PIECE_Empty] & SquareBB(to))
     {
-        for (EPiece p = EPiece::W_Pawn; p != EPiece::Invalid; ++p)
+        for (int p = PIECE_W_Pawn; p != PIECE_Invalid; ++p)
         {
-            if (bitBoard.Pieces[static_cast<int>(p)] & static_cast<U64>(to))
+            if (Pieces[p] & SquareBB(to))
             {
-                capturedType = p;
+                capturedType = static_cast<EPiece>(p);
                 break;
             }
         }
     }
 
-    for (EPiece p = EPiece::W_Pawn; p != EPiece::Invalid; ++p)
+    for (int p = PIECE_W_Pawn; p != PIECE_Invalid; ++p)
     {
-        if (bitBoard.Pieces[static_cast<int>(p)] & static_cast<U64>(from))
+        if (Pieces[p] & SquareBB(from))
         {
-            movedType = p;
+            movedType = static_cast<EPiece>(p);
             break;
         }
     }
@@ -568,38 +565,38 @@ Arktos::Move Arktos::Board::ParseMove(std::string str) const
     switch (str.back())
     {
         case 'q':
-            promotedType = sideToMove == EColor::White ? EPiece::W_Queen : EPiece::B_Queen;
+            promotedType = sideToMove == COLOR_White ? PIECE_W_Queen : PIECE_B_Queen;
             break;
         case 'r':
-            promotedType = sideToMove == EColor::White ? EPiece::W_Rook : EPiece::B_Rook;
+            promotedType = sideToMove == COLOR_White ? PIECE_W_Rook : PIECE_B_Rook;
             break;
         case 'b':
-            promotedType = sideToMove == EColor::White ? EPiece::W_Bishop : EPiece::B_Bishop;
+            promotedType = sideToMove == COLOR_White ? PIECE_W_Bishop : PIECE_B_Bishop;
             break;
         case 'k':
-            promotedType = sideToMove == EColor::White ? EPiece::W_Knight : EPiece::B_Knight;
+            promotedType = sideToMove == COLOR_White ? PIECE_W_Knight : PIECE_B_Knight;
             break;
     }
 
-    if (sideToMove == EColor::White)
+    if (sideToMove == COLOR_White)
     {
-        kingCastle = movedType == EPiece::W_King
-        && from == ESquare::E1
-        && to == ESquare::G1;
+        kingCastle = movedType == PIECE_W_King
+        && from == SQ_E1
+        && to == SQ_G1;
 
-        queenCastle = movedType == EPiece::W_King
-        && from == ESquare::E1
-        && to == ESquare::C1;
+        queenCastle = movedType == PIECE_W_King
+        && from == SQ_E1
+        && to == SQ_C1;
     }
-    else if (sideToMove == EColor::Black)
+    else if (sideToMove == COLOR_Black)
     {
-        kingCastle = movedType == EPiece::B_King
-        && from == ESquare::E8
-        && to == ESquare::G8;
+        kingCastle = movedType == PIECE_B_King
+        && from == SQ_E8
+        && to == SQ_G8;
 
-        queenCastle = movedType == EPiece::B_King
-        && from == ESquare::E8
-        && to == ESquare::C8;
+        queenCastle = movedType == PIECE_B_King
+        && from == SQ_E8
+        && to == SQ_C8;
     }
 
     return Move(
@@ -621,11 +618,6 @@ std::vector<Arktos::Move> Arktos::Board::GenerateLegalMoves() const
      * For all the bits in that board, build a move for that from/to, test for check (make, test, unmake), and add to list if legal
      */
 
-    for (EPiece p = EPiece::W_Pawn; p != EPiece::Invalid; ++p)
-    {
-
-    }
-
     return moves;
 }
 
@@ -639,84 +631,87 @@ std::vector<Arktos::Move> Arktos::Board::GenerateLegalMoves() const
 
 void Arktos::Board::MakeMove(Move move)
 {
-    const U64 dest = move.GetTo();
-    const U64 start = move.GetFrom();
+    const BitBoard dest = move.GetTo();
+    const BitBoard start = move.GetFrom();
     const EPiece movedType = move.GetMovedPiece();
     const EPiece capturedType = move.GetCapturedPiece();
     const EPiece promotedType = move.GetPromotedPiece();
     BoardState newState(StateHistory.back());
+    bool checkEP = false;
+    ESquare toSq = lsb(dest);
 
     /*
      * See if the other side is in check
      */
 
-    assert(sideToMove != EColor::None);
-    bitBoard.Pieces[static_cast<int>(movedType)] ^= start | dest;
-    bitBoard.Pieces[static_cast<int>(EPiece::Empty)] ^= start | dest;
-    bitBoard.PiecesByColor[static_cast<int>(sideToMove)] ^= start | dest;
+    assert(sideToMove != COLOR_None);
+    Pieces[movedType] ^= start | dest;
+    Pieces[PIECE_Empty] ^= start | dest;
+    Colors[sideToMove] ^= start | dest;
+    newState.EnpassantSquare = SQ_ER;
 
-    if (sideToMove == EColor::White &&
-        movedType == EPiece::W_Pawn &&
-        capturedType == EPiece::B_Pawn &&
-        static_cast<ESquare>(dest) == StateHistory.back().EnpassantSquare)
+    if (sideToMove == COLOR_White &&
+        movedType == PIECE_W_Pawn &&
+        capturedType == PIECE_B_Pawn &&
+        lsb(dest) == StateHistory.back().EnpassantSquare)
     {
-        bitBoard.Pieces[static_cast<int>(EPiece::B_Pawn)] ^= dest - 8;
-        bitBoard.PiecesByColor[static_cast<int>(EColor::Black)] ^= dest - 8;
-        newState.EnpassantSquare = ESquare::ER;
+        Pieces[PIECE_B_Pawn] ^= dest << 8;
+        Colors[COLOR_Black] ^= dest << 8;
+        newState.EnpassantSquare = SQ_ER;
     }
-    else if (sideToMove == EColor::Black &&
-            movedType == EPiece::B_Pawn &&
-            capturedType == EPiece::W_Pawn &&
-            static_cast<ESquare>(dest) == StateHistory.back().EnpassantSquare)
+    else if (sideToMove == COLOR_Black &&
+            movedType == PIECE_B_Pawn &&
+            capturedType == PIECE_W_Pawn &&
+            lsb(dest) == StateHistory.back().EnpassantSquare)
     {
-        bitBoard.Pieces[static_cast<int>(EPiece::W_Pawn)] ^= dest + 8;
-        bitBoard.PiecesByColor[static_cast<int>(EColor::White)] ^= dest + 8;
-        newState.EnpassantSquare = ESquare::ER;
+        Pieces[PIECE_W_Pawn] ^= dest >> 8;
+        Colors[COLOR_White] ^= dest >> 8;
+        newState.EnpassantSquare = SQ_ER;
     }
-    else if (capturedType != EPiece::Invalid)
+    else if (capturedType != PIECE_Invalid)
     {
-        bitBoard.Pieces[static_cast<int>(capturedType)] ^= dest;
-        bitBoard.PiecesByColor[static_cast<int>(sideToMove == EColor::White ? EColor::Black : EColor::White)] ^= dest;
+        Pieces[capturedType] ^= dest;
+        Colors[sideToMove == COLOR_White ? COLOR_Black : COLOR_White] ^= dest;
     }
 
     if (move.KingSideCastle())
     {
-        if (sideToMove == EColor::White)
+        if (sideToMove == COLOR_White)
         {
-            bitBoard.Pieces[static_cast<int>(EPiece::W_Rook)] ^= static_cast<U64>(ESquare::H1) | static_cast<U64>(ESquare::F1);
-            bitBoard.PiecesByColor[static_cast<int>(EColor::White)] ^= static_cast<U64>(ESquare::H1) | static_cast<U64>(ESquare::F1);
+            Pieces[PIECE_W_Rook] ^= SquareBB(SQ_H1) | SquareBB(SQ_F1);
+            Colors[COLOR_White] ^= SquareBB(SQ_H1) | SquareBB(SQ_F1);
             newState.CastlingRights &= k_CAST | q_CAST;
         }
         else
         {
-            bitBoard.Pieces[static_cast<int>(EPiece::B_Rook)] ^= static_cast<U64>(ESquare::H8) | static_cast<U64>(ESquare::F8);
-            bitBoard.PiecesByColor[static_cast<int>(EColor::Black)] ^= static_cast<U64>(ESquare::H8) | static_cast<U64>(ESquare::F8);
+            Pieces[PIECE_B_Rook] ^= SquareBB(SQ_H8) | SquareBB(SQ_F8);
+            Colors[COLOR_Black] ^= SquareBB(SQ_H8) | SquareBB(SQ_F8);
             newState.CastlingRights &= K_CAST | Q_CAST;
         }
     }
     else if (move.QueenSideCastle())
     {
-        if (sideToMove == EColor::White)
+        if (sideToMove == COLOR_White)
         {
-            bitBoard.Pieces[static_cast<int>(EPiece::W_Rook)] ^= static_cast<U64>(ESquare::A1) | static_cast<U64>(ESquare::D1);
-            bitBoard.PiecesByColor[static_cast<int>(EColor::White)] ^= static_cast<U64>(ESquare::A1) | static_cast<U64>(ESquare::D1);
+            Pieces[PIECE_W_Rook] ^= SquareBB(SQ_A1) | SquareBB(SQ_D1);
+            Colors[COLOR_White] ^= SquareBB(SQ_A1) | SquareBB(SQ_D1);
             newState.CastlingRights &= k_CAST | q_CAST;
         }
         else
         {
-            bitBoard.Pieces[static_cast<int>(EPiece::B_Rook)] ^= static_cast<U64>(ESquare::A8) | static_cast<U64>(ESquare::D8);
-            bitBoard.PiecesByColor[static_cast<int>(EColor::Black)] ^= static_cast<U64>(ESquare::A8) | static_cast<U64>(ESquare::D8);
+            Pieces[PIECE_B_Rook] ^= SquareBB(SQ_A8) | SquareBB(SQ_D8);
+            Colors[COLOR_Black] ^= SquareBB(SQ_A8) | SquareBB(SQ_D8);
             newState.CastlingRights &= K_CAST | Q_CAST;
         }
     }
 
-    if (movedType == EPiece::W_Pawn || movedType == EPiece::B_Pawn)
+    if (movedType == PIECE_W_Pawn || movedType == PIECE_B_Pawn)
     {
-        if (promotedType != EPiece::Invalid)
+        if (promotedType != PIECE_Invalid)
         {
-            bitBoard.Pieces[static_cast<int>(movedType)] ^= dest;
-            bitBoard.Pieces[static_cast<int>(promotedType)] ^= dest;
-            newState.EnpassantSquare = ESquare::ER;
+            Pieces[static_cast<int>(movedType)] ^= dest;
+            Pieces[static_cast<int>(promotedType)] ^= dest;
+            newState.EnpassantSquare = SQ_ER;
         }
         /*
          *TODO:
@@ -725,25 +720,16 @@ void Arktos::Board::MakeMove(Move move)
          * I need to check if a pawn can take this turn, and check for legality
          * (see if that move puts the King in check)
          */
-        else if (movedType == EPiece::W_Pawn && start & RANK_2 && dest & RANK_4)
-        {
-            newState.EnpassantSquare = static_cast<ESquare>(dest >> 8);
-        }
-        else if (movedType == EPiece::B_Pawn && start & RANK_7 && dest & RANK_5)
-        {
-            newState.EnpassantSquare = static_cast<ESquare>(dest << 8);
-        }
-        else
-        {
-            newState.EnpassantSquare = ESquare::ER;
-        }
-    }
-    else
-    {
-        newState.EnpassantSquare = ESquare::ER;
+        //checkEP = (static_cast<int>(lsb(dest)) ^ static_cast<int>(lsb(start))) == 16;
     }
 
-    if (capturedType != EPiece::Invalid || movedType == EPiece::W_Pawn || movedType == EPiece::B_Pawn)
+    while (checkEP)
+    {
+        ESquare to = lsb(dest);
+
+    }
+
+    if (capturedType != PIECE_Invalid || movedType == PIECE_W_Pawn || movedType == PIECE_B_Pawn)
     {
         newState.Repetitions = 0;
     }
@@ -752,12 +738,12 @@ void Arktos::Board::MakeMove(Move move)
         newState.Repetitions++;
     }
 
-    if (sideToMove == EColor::Black)
+    if (sideToMove == COLOR_Black)
     {
         fullMoveClock++;
     }
 
-    sideToMove = sideToMove == EColor::White ? EColor::Black : EColor::White;
+    sideToMove = sideToMove == COLOR_White ? COLOR_Black : COLOR_White;
 
     StateHistory.push_back(newState);
 }
@@ -769,8 +755,8 @@ void Arktos::Board::UnMakeMove(Move move)
 
 std::string Arktos::Board::GetBitBoardStr(EPiece type) const
 {
-    constexpr U64 bit = 1LL << 63;
-    const U64 board = bitBoard.Pieces[static_cast<int>(type)];
+    constexpr BitBoard bit = 1LL << 63;
+    const BitBoard board = Pieces[type];
     std::string str = "\n +---+---+---+---+---+---+---+---+  \n";
 
     for (int i = 0; i < 8; ++i)
