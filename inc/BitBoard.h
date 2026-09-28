@@ -21,7 +21,7 @@ namespace Arktos
     {
         assert(b);
 
-#if defined(__GNC__)
+#if defined(__GNUC__)
         return ESquare(__builtin_ctzll(b)); // GCC, Clang, ICX
 #elif defined(_MSC_VER)
         #ifdef _WIN64 // MSVC, WIN64
@@ -51,8 +51,8 @@ namespace Arktos
     {
         assert(b);
 
-#if defined(__GCC__) // GCC, CLang, ICX
-        return ESquare(63 ^ __builtin_clzll(b))
+#if defined(__GNUC__) // GCC, CLang, ICX
+        return ESquare(63 ^ __builtin_clzll(b));
 #elif defined(_MSC_VER)
         #ifdef _WIN64 // MSVC, WIN64
         unsigned long bit;
