@@ -149,6 +149,11 @@ void Arktos::Board::SetFEN(const std::string &fenStr)
                         ~sq & Colors[COLOR_White];
                     Colors[COLOR_Black] =
                         ~sq & Colors[COLOR_Black];
+
+                    if (sq == SquareBB(SQ_H8))
+                    {
+                        break;
+                    }
                 }
                 sq = end & FILE_H ? end >> 7 : sq;
             }
@@ -719,11 +724,24 @@ void Arktos::Board::MakeMove(Move move)
          * So instead of what I'm doing now where it updates after every double push,
          * I need to check if a pawn can take this turn, and check for legality
          * (see if that move puts the King in check)
+         * So then I'll need a way to take a given bitboard and see if a given square is in check
          */
-        //checkEP = (static_cast<int>(lsb(dest)) ^ static_cast<int>(lsb(start))) == 16;
+        /* checkEP:
+        * Pawn double pushed
+        - at least one adjacent enemy pawn
+    
+        EP is legal the EP capturing pawn is not pinned
+         */
+        const EColor oppSide = sideToMove == COLOR_White ? COLOR_Black : COLOR_White;
+        const ESquare attackSq = sideToMove == COLOR_White ? lsb(dest >> 8) : lsb(dest << 8);
+
+        checkEP = (lsb(dest) ^ lsb(start)) == 16 &&
+        AttackBB[ATK_W_Pawn + sideToMove][attackSq] & Pieces[oppSide == COLOR_Black ? PIECE_B_Pawn : PIECE_W_Pawn];
+
+        std::cout << "CheckEP: " << checkEP << std::endl;
     }
 
-    while (checkEP)
+    while (false)
     {
         ESquare to = lsb(dest);
 
