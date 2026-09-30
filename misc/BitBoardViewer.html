@@ -13,15 +13,43 @@
                 grid-template-columns: 50px 50px 50px 50px 50px 50px 50px 50px;
                 grid-template-rows: 50px 50px 50px 50px 50px 50px 50px 50px;
                 font-size: 27pt;
+                margin-left: 50px;
             }
-            .board div{
+            .board div, #ranks div, #files div{
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                user-select: none;
             }
+            #ranks{
+                display: flex;
+                flex-direction: column;
+                width: 50px;
+                position: absolute;
+            }
+            #files{
+                display: flex;
+                flex-direction: row;
+                margin-left: 50px;
+                margin-top: 10px;
+            }
+            #ranks div, #files div{
+                flex-basis: 50px;
+                font-size: 20px;
+        }
         </style>
     </head>
     <body>
+        <div id="ranks">
+            <div>8</div>
+            <div>7</div>
+            <div>6</div>
+            <div>5</div>
+            <div>4</div>
+            <div>3</div>
+            <div>2</div>
+            <div>1</div>
+        </div>
         <div class="board">
             <div></div>
             <div></div>
@@ -88,27 +116,79 @@
             <div></div>
             <div></div>
         </div>
-        <br />
+        <div id="files">
+            <div>a</div>
+            <div>b</div>
+            <div>c</div>
+            <div>d</div>
+            <div>e</div>
+            <div>f</div>
+            <div>g</div>
+            <div>h</div>
+        </div>
         <span id="bitTxt"></span>
         <br />
-        <input id="bit" type="text" />
-        <button id="bitBtn">Map to Board</button>
+        <input id="bit" type="number" />
+        <button id="editBtn">Edit Mode</button>
         <script>
             var squares = document.querySelectorAll(".board div");
             var bitText = document.getElementById("bitTxt");
             var bitInput = document.getElementById("bit");
-            var btiBtn = document.getElementById("bitBtn");
+            var editBtn = document.getElementById("editBtn");
             let lightColor = true;
+            var inEditMode = false;
+            var mouseBtnDown = false;
 
-            btiBtn.addEventListener("click", () => {
-                bitText.textContent = bitInput.value;
-                WriteBoard(BigInt(bitInput.value));
-                bitInput.value = "";
+            bitInput.addEventListener("change", (e) => {
+                bitText.textContent = e.target.value;
+                WriteBoard(BigInt(e.target.value));
+                e.target.value = "";
             });
+
+            editBtn.addEventListener("click", (e) => {
+                inEditMode = !inEditMode;
+                e.target.textContent = `Edit Mode ${inEditMode ? "ON" : "OFF"}`;
+            });
+
+            document.body.addEventListener("mousedown", () => {
+                if (inEditMode)
+                {
+                    mouseBtnDown = true;
+                }
+            });
+
+            document.body.addEventListener("mouseup", () => {
+                if (inEditMode)
+                {
+                    mouseBtnDown = false;
+                }
+            });
+
+            function onSquareEnter(event)
+            {
+                if (inEditMode && mouseBtnDown)
+                {
+                    let txt = event.target.textContent;
+                    event.target.textContent = txt == "1" ? "0" : "1";
+                    ReadBoard();
+                }
+            }
+
+            function onSquareDown(event)
+            {
+                if (inEditMode)
+                {
+                    let txt = event.target.textContent;
+                    event.target.textContent = txt == "1" ? "0" : "1";
+                    ReadBoard();
+                }
+            }
 
             for (let i = 0; i < 8; ++i){
                 for (let j = 0; j < 8; ++j){
                     squares[i*8 + j].style.background = lightColor ? "#FFCE9E" : "#D18B47";
+                    squares[i*8 + j].addEventListener("mouseover", onSquareEnter);
+                    squares[i*8 + j].addEventListener("mousedown", onSquareDown);
                     lightColor = !lightColor;
                 }
                 lightColor = !lightColor;
@@ -117,13 +197,14 @@
             function GetBitBoardStr(board)
             {
                 const bit = 1n << 63n;
+                let bitBoard = BigInt(board);
 
                 let str = "\n +---+---+---+---+---+---+---+---+  \n";
 
                 for (let i = 0; i < 8; ++i){
                     str += " |";
                     for (let j = 7; j >= 0; --j){
-                        str += " " + (board & bit >> (BigInt(i) * 8n + BigInt(j)) ? "1 |" : "0 |");
+                        str += " " + (bitBoard & bit >> (BigInt(i) * 8n + BigInt(j)) ? "1 |" : "0 |");
                     }
                     str += " " + (8 - i).toString() + "\n";
                 }
@@ -142,6 +223,23 @@
                         squares[boardIndex++].textContent = (board & bit >> (BigInt(i) * 8n + BigInt(j)) ? "1" : "0");
                     }
                 }
+            }
+
+            function ReadBoard()
+            {
+                const bit = 1n << 63n;
+                var result = 0n;
+                let boardIndex = 0;
+
+                for (let i = 0; i < 8; ++i)
+                {
+                    for (let j = 7; j >= 0; --j)
+                    {
+                        result = result | (squares[boardIndex++].textContent == "1" ? bit >> BigInt(i) * 8n + BigInt(j) : 0n);
+                    }
+                }
+
+                bitText.textContent = result;
             }
         </script>
     </body>
