@@ -62,7 +62,7 @@ namespace Arktos
 	    None
     };
 
-    enum EColor : int
+    enum EColor : unsigned short int
     {
         COLOR_White,
         COLOR_Black,

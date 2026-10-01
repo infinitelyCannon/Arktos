@@ -39,6 +39,8 @@ void Arktos::Board::Init()
         attacks |= (east | west) << 8;
         attacks |= (east | west) >> 8;
         AttackBB[ATK_Knight][sq] = attacks;
+
+        // TODO: Init Rook/Bishop masks
     }
 }
 

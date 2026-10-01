@@ -20,4 +20,4 @@ add_library(Arktos STATIC Arktos.cpp ${PLATFORM_FILES} ${HEADER_LIST} "Board.cpp
 
 target_include_directories(Arktos PUBLIC ../inc)
 
-target_compile_features(Arktos PUBLIC cxx_std_17)
+set_property(TARGET Arktos PROPERTY CXX_STANDARD 17)
