@@ -22,6 +22,29 @@ namespace Arktos
         void CheckFEN(std::string fen);
         Move ParseMove(std::string str) const;
 
+        
+        inline BitBoard GetPieces(PieceType pt) const
+        {
+            if (pt == PIECE_TYPE_NONE)
+                return Pieces[PIECE_Empty];
+            if (pt == ALL_PIECES)
+                return ~Pieces[PIECE_Empty];
+
+            return Pieces[pt] | Pieces[pt + 6];
+        }
+
+        inline BitBoard GetPieces(EColor c) const
+        {
+            assert(c != COLOR_None);
+            return Colors[c];
+        }
+
+        inline BitBoard GetPieces(EColor c, PieceType pt) const
+        {
+            assert(pt != ALL_PIECES && pt != PIECE_TYPE_NONE);
+            return c == COLOR_White ? Pieces[pt] : Pieces[pt + 6];
+        }
+
         /*
          * Make Move (mutate board state)
          * Unname Move (mutate back)
@@ -38,6 +61,8 @@ namespace Arktos
 
     private:
         void SplitStr(std::vector<std::string>& list, const std::string& str, const char* subStr = " ") const;
+        void SetStateInfo();
+        void UpdateSliderBlockers(EColor color);
 
         BitBoard Pieces[PIECE_Invalid] = {0};
         BitBoard Colors[COLOR_None] = {0};
@@ -60,14 +85,7 @@ namespace Arktos
          * do the operation to get the hash index
          * set the magicBB at that square/index to the calculated sliding attack
          */
-        static constexpr BitBoard FILE_A = 0x101010101010101;
-        static constexpr BitBoard FILE_H = 0x8080808080808080;
-        static constexpr BitBoard RANK_1 = 0xFF;
-        static constexpr BitBoard RANK_2 = 0xFF00;
-        static constexpr BitBoard RANK_4 = 0xFF000000;
-        static constexpr BitBoard RANK_5 = 0xFF00000000;
-        static constexpr BitBoard RANK_7 = 0xFF000000000000;
-        static constexpr BitBoard RANK_8 = 0xFF00000000000000;
+        
 
         /*
           ____ ____ ____ KQkq

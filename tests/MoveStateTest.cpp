@@ -20,6 +20,7 @@ int main(int argc, char** argv)
 
     const int numGames = std::stoi(argv[1]);
     Arktos::Board board;
+    board.Init();
 
     for (int i = 1; i <= numGames; ++i)
     {
@@ -30,7 +31,6 @@ int main(int argc, char** argv)
         if (file.is_open())
         {
             std::cout << "Reading " << argv[2] << "/game" << i << ".txt...\n";
-            board.Init();
             board.SetFEN("startpos");
             while (std::getline(file, line))
             {
@@ -44,6 +44,7 @@ int main(int argc, char** argv)
                 catch (Arktos::StateException &err)
                 {
                     std::cerr << "Exception thrown at move (" << lineNum << "): " << err.what() << std::endl;
+                    file.close();
                     return 1;
                 }
                 ++lineNum;

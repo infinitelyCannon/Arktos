@@ -1,5 +1,6 @@
 #include "Board.h"
 #include "Exception.h"
+#include "BitBoard.h"
 #include <iostream>
 #include <sstream>
 #include <cassert>
@@ -9,39 +10,15 @@ Arktos::Board::Board()
 
 void Arktos::Board::Init()
 {
-    for (int c = COLOR_White; c < COLOR_None; ++c)
-    {
-        for (int sq = SQ_A1; sq < SQ_ER; ++sq)
-        {
-            BitBoard square = 1ULL << sq;
-            int index = c == COLOR_White ? ATK_W_Pawn : ATK_B_Pawn;
-            BitBoard east = c == COLOR_White ? square << 9 & ~FILE_A : square >> 7 & ~FILE_A;
-            BitBoard west = c == COLOR_White ? square << 7 & ~FILE_H : square >> 9 & ~FILE_H;
-            AttackBB[index][sq] = east | west;
-        }
-    }
+    InitRays();
 
-    for (int sq = SQ_A1; sq < SQ_ER; ++sq)
-    {
-        BitBoard square = 1ULL << sq;
-        BitBoard attacks = square << 1 & ~FILE_A | square >> 1 & ~FILE_H;
-        attacks |= square;
-        attacks |= attacks << 8 | attacks >> 8;
-        AttackBB[ATK_King][sq] = attacks ^ square;
+    InitAttacks();
 
-        BitBoard east, west;
-        east = square << 1 & ~FILE_A;
-        west = square >> 1 & ~FILE_H;
-        attacks = (east | west) << 16;
-        attacks |= (east | west) >> 16;
-        east = east << 1 & ~FILE_A;
-        west = west >> 1 & ~FILE_H;
-        attacks |= (east | west) << 8;
-        attacks |= (east | west) >> 8;
-        AttackBB[ATK_Knight][sq] = attacks;
+    InitRookMasks();
+    InitBishopMasks();
 
-        // TODO: Init Rook/Bishop masks
-    }
+    InitRookMagicTable();
+    InitBishopMagicTable();
 }
 
 void Arktos::Board::SetFEN(const std::string &fenStr)
@@ -241,6 +218,7 @@ void Arktos::Board::SetFEN(const std::string &fenStr)
     fenStream >> std::skipws;
     fenStream >> token;
     StateHistory[0].Repetitions = std::stoi(&token);
+    SetStateInfo();
 
     fenStream >> token;
     fullMoveClock = std::stoi(&token);
@@ -628,14 +606,6 @@ std::vector<Arktos::Move> Arktos::Board::GenerateLegalMoves() const
     return moves;
 }
 
-/*
- *TODO:
- * bool CanEnPassant()
- * check if there is an enemy pawn directly adjacent to the moving pawn
- * might just have to do a 'is _ king in check in _ board position'
- * then have that run for the pawn(s) that can attack.
- */
-
 void Arktos::Board::MakeMove(Move move)
 {
     const BitBoard dest = move.GetTo();
@@ -646,12 +616,10 @@ void Arktos::Board::MakeMove(Move move)
     BoardState newState(StateHistory.back());
     bool checkEP = false;
     ESquare toSq = lsb(dest);
-
-    /*
-     * See if the other side is in check
-     */
+    ESquare fromSq = lsb(start);
 
     assert(sideToMove != COLOR_None);
+
     Pieces[movedType] ^= start | dest;
     Pieces[PIECE_Empty] ^= start | dest;
     Colors[sideToMove] ^= start | dest;
@@ -664,7 +632,6 @@ void Arktos::Board::MakeMove(Move move)
     {
         Pieces[PIECE_B_Pawn] ^= dest << 8;
         Colors[COLOR_Black] ^= dest << 8;
-        newState.EnpassantSquare = SQ_ER;
     }
     else if (sideToMove == COLOR_Black &&
             movedType == PIECE_B_Pawn &&
@@ -673,7 +640,6 @@ void Arktos::Board::MakeMove(Move move)
     {
         Pieces[PIECE_W_Pawn] ^= dest >> 8;
         Colors[COLOR_White] ^= dest >> 8;
-        newState.EnpassantSquare = SQ_ER;
     }
     else if (capturedType != PIECE_Invalid)
     {
@@ -718,7 +684,6 @@ void Arktos::Board::MakeMove(Move move)
         {
             Pieces[static_cast<int>(movedType)] ^= dest;
             Pieces[static_cast<int>(promotedType)] ^= dest;
-            newState.EnpassantSquare = SQ_ER;
         }
         /*
          *TODO:
@@ -733,20 +698,32 @@ void Arktos::Board::MakeMove(Move move)
         - at least one adjacent enemy pawn
     
         EP is legal the EP capturing pawn is not pinned
+        noDiscovery = the from square was not a blocker for the other king last turn OR the file of the from sq equals the other king's file
+        if noDiscovery AND
+
+        blockersForKing, stored in stateInfo updated in update_slider_blockers(), which is called when setting the initial state from
+        a FEN string and after doing move.
          */
         const EColor oppSide = sideToMove == COLOR_White ? COLOR_Black : COLOR_White;
         const ESquare attackSq = sideToMove == COLOR_White ? lsb(dest >> 8) : lsb(dest << 8);
+        const BitBoard pawns = AttacksBB<PAWN>(attackSq, sideToMove) & GetPieces(~sideToMove, PAWN);
 
-        checkEP = (lsb(dest) ^ lsb(start)) == 16 &&
-        AttackBB[ATK_W_Pawn + sideToMove][attackSq] & Pieces[oppSide == COLOR_Black ? PIECE_B_Pawn : PIECE_W_Pawn];
+        // If there are no pawns attacking the EP square, EP is not possible
+        if ((lsb(dest) ^ lsb(start)) == 16 && pawns)
+        {
+            ESquare kingSq = lsb(GetPieces(~sideToMove, KING));
+            BitBoard notBlockers = ~StateHistory.back().BlockersForKing[~sideToMove];
+            bool noDiscovery = (start & notBlockers) || GetFile(fromSq) == GetFile(kingSq);
 
-        std::cout << "CheckEP: " << checkEP << std::endl;
-    }
-
-    while (false)
-    {
-        ESquare to = lsb(dest);
-
+            // (Using logic pulled from Stockfish):
+            // "If the pawn gives discovered check, ep is never legal. Else, if at least one
+            // pawn was not a blocker for the enemy king or lies on the same line as the
+            // enemy king and en passant square, a legal capture exists.""
+            if (noDiscovery && (pawns & (notBlockers | GetLine(attackSq, kingSq))))
+            {
+                newState.EnpassantSquare = attackSq;
+            }
+        }        
     }
 
     if (capturedType != PIECE_Invalid || movedType == PIECE_W_Pawn || movedType == PIECE_B_Pawn)
@@ -766,6 +743,42 @@ void Arktos::Board::MakeMove(Move move)
     sideToMove = sideToMove == COLOR_White ? COLOR_Black : COLOR_White;
 
     StateHistory.push_back(newState);
+    SetStateInfo();
+}
+
+void Arktos::Board::UpdateSliderBlockers(EColor color)
+{
+    ESquare kingSq = lsb(Pieces[color == COLOR_White ? PIECE_W_King : PIECE_B_King]);
+
+    BoardState &state = StateHistory.back();
+    state.BlockersForKing[color] = 0;
+    state.Pinners[color] = 0;
+
+    BitBoard snipers = (AttacksBB<ROOK>(kingSq) & (GetPieces(QUEEN) | GetPieces(ROOK)))
+                | (AttacksBB<BISHOP>(kingSq) & (GetPieces(QUEEN) | GetPieces(BISHOP)))
+                & GetPieces(~color);
+    BitBoard occupancy = GetPieces(ALL_PIECES) ^ snipers;
+
+    while (snipers)
+    {
+        ESquare sniperSq = popLsb(snipers);
+        BitBoard b = GetBetween(kingSq, sniperSq) & occupancy;
+
+        if (b && !MoreThanOne(b))
+        {
+            state.BlockersForKing[color] |= b;
+            if (b & GetPieces(color))
+            {
+                state.Pinners[~color] |= sniperSq;
+            }
+        }
+    }
+}
+
+void Arktos::Board::SetStateInfo()
+{
+    UpdateSliderBlockers(COLOR_White);
+    UpdateSliderBlockers(COLOR_Black);
 }
 
 void Arktos::Board::UnMakeMove(Move move)

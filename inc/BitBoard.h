@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "Types.h"
+#include "Defs.h"
 #include <cassert>
 #if defined(_MSC_VER)
 #include <intrin.h>
@@ -8,11 +8,14 @@
 
 namespace Arktos
 {
-    inline BitBoard AttackBB[4][64] = {{0}};
-    inline BitBoard RookMasks[64] = {0};
-    inline BitBoard BishopMasks[64] = {0};
-    inline BitBoard RookTable[64][4096] = {{0}};
-    inline BitBoard BishopTable[64][1024] = {{0}};
+    extern BitBoard PseudoAttacks[ALL_PIECES][64];
+    extern BitBoard RookMasks[64];
+    extern BitBoard BishopMasks[64];
+    extern BitBoard RookTable[64][4096];
+    extern BitBoard BishopTable[64][1024];
+    extern BitBoard Rays[8][64];
+    extern BitBoard LineBB[64][64];
+    extern BitBoard BetweenBB[64][64];
 
     // Magic values for Rook and Bishop hash tables
     const uint64_t RookMagics[64] = {
@@ -65,20 +68,82 @@ namespace Arktos
         6, 5, 5, 5, 5, 5, 5, 6
     };
 
+    void InitAttacks();
+
     void InitRookMasks();
     void InitBishopMasks();
     void InitRookMagicTable();
     void InitBishopMagicTable();
 
+    BitBoard GetRookAttacks(ESquare sq, BitBoard blockers);
+    BitBoard GetBishopAttacks(ESquare sq, BitBoard blockers);
     BitBoard GetBlockersFromIndex(int index, BitBoard mask);
+    BitBoard GetRookAttacksSlow(int square, BitBoard blockers);
+    BitBoard GetBishopAttacksSlow(int square, BitBoard blockers);
 
-    // TODO: this uses __builtin_popcountll (which I assume is a linux thing)
+    constexpr bool MoreThanOne(BitBoard b) {return b & (b - 1);}
+
+    // Get the spaces between s1 and s2 if it exists (s2 included)
+    inline BitBoard GetBetween(ESquare s1, ESquare s2) 
+    {
+        assert(is_ok(s1) && is_ok(s2));
+        return BetweenBB[s1][s2];
+    }
+
+    // Get the line of squares from s1 to s2 (inclusive) if it exists
+    inline BitBoard GetLine(ESquare s1, ESquare s2)
+    {
+        assert(is_ok(s1) && is_ok(s2));
+        return LineBB[s1][s2];
+    }
+
+    // Rays
+    void InitRays();
+    BitBoard getRay(EDirection dir, int square);
+    // end Rays
+
+    inline BitBoard shiftEast(BitBoard board, int n)
+    {
+        BitBoard newBoard = board;
+        for (int i = 0; i < n; ++i)
+        {
+            newBoard = ((newBoard << 1) & (~FILE_A));
+        }
+
+        return newBoard;
+    }
+    
+    inline BitBoard shiftWest(BitBoard board, int n)
+    {
+        BitBoard newBoard = board;
+        for (int i = 0; i < n; ++i)
+        {
+            newBoard = ((newBoard >> 1) & ~FILE_H);
+        }
+
+        return newBoard;
+    }
+
+    inline int GetRank(ESquare sq)
+    {
+        assert(is_ok(sq));
+        return sq / 8;
+    }
+
+    inline int GetFile(ESquare sq)
+    {
+        assert(is_ok(sq));
+        return sq % 8;
+    }
+
     inline int popCount(BitBoard board)
     {
-#if defined(_MSC_VER)
+#if defined(__GNUC__)
+        return __builtin_popcountll(board);
+#elif defined(_MSC_VER)
         return __popcnt64(board);
 #else
-        return __builtin_popcountll(board);
+        #error "Compiler not supported"
 #endif
     }
 
@@ -88,6 +153,58 @@ namespace Arktos
         return 1ULL << sq;
     }
 
+    // Returns the attacks by the given piece
+    // assuming the board is occupied according to the passed Bitboard.
+    // Sliding piece attacks do not continue past an occupied square.
+    template <PieceType Pt>
+    inline BitBoard AttacksBB(ESquare sq, EColor c = COLOR_None)
+    {
+        assert((Pt != PAWN || c < COLOR_None) && is_ok(sq));
+        return Pt == PAWN ? PseudoAttacks[c][sq] : PseudoAttacks[Pt][sq];
+    }
+
+    // Returns the attacks by the given piece
+    // assuming the board is occupied according to the passed Bitboard.
+    // Sliding piece attacks do not continue past an occupied square.
+    template <PieceType Pt>
+    inline BitBoard AttacksBB(ESquare sq, BitBoard occupied)
+    {
+        assert(Pt != PAWN && is_ok(sq));
+
+        switch (Pt)
+        {
+        case BISHOP:
+            return GetBishopAttacks(sq, occupied);
+        case ROOK:
+            return GetRookAttacks(sq, occupied);
+        case QUEEN:
+            return GetBishopAttacks(sq, occupied) | GetRookAttacks(sq, occupied);
+        default:
+            return PseudoAttacks[Pt][sq];
+        }
+    }
+
+    // Returns the attacks by the given piece
+    // assuming the board is occupied according to the passed Bitboard.
+    // Sliding piece attacks do not continue past an occupied square.
+    inline BitBoard AttacksBB(PieceType pt, ESquare sq, BitBoard occupied)
+    {
+        assert(pt != PAWN && is_ok(sq));
+
+        switch(pt)
+        {
+            case BISHOP:
+                return AttacksBB<BISHOP>(sq, occupied);
+            case ROOK:
+                return AttacksBB<ROOK>(sq, occupied);
+            case QUEEN:
+                return AttacksBB<QUEEN>(sq, occupied);
+            default:
+                return PseudoAttacks[pt][sq];
+        }
+    }
+
+    // Count trailing zeros
     inline ESquare lsb(BitBoard b)
     {
         assert(b);
@@ -118,6 +235,7 @@ namespace Arktos
 #endif
     }
 
+    // Count leading zeros
     inline ESquare msb(BitBoard b)
     {
         assert(b);
@@ -147,4 +265,21 @@ namespace Arktos
         #error "Compiler not supported"
 #endif
     }
+
+    // Removes and returns the least significant bit
+    inline ESquare popLsb(BitBoard &board)
+    {
+        assert(board);
+        ESquare bit = lsb(board);
+        board &= board - 1;
+        return bit;
+    }
+
+    constexpr BitBoard operator&(BitBoard b, ESquare s) {return b & SquareBB(s);}
+    constexpr BitBoard operator|(BitBoard b, ESquare s) {return b | SquareBB(s);}
+
+    constexpr BitBoard operator&(ESquare s, BitBoard b) {return b & s;}
+    constexpr BitBoard operator|(ESquare s, BitBoard b) {return b | s;}
+
+    constexpr BitBoard operator|(ESquare s1, ESquare s2) {return SquareBB(s1) | s2;}
 }

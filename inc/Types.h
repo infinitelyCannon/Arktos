@@ -55,11 +55,16 @@ namespace Arktos
         ATK_Invalid
     };
 
-    enum EColor_OLD : unsigned short int
+    enum PieceType : unsigned short int
     {
-	    White,
-	    Black,
-	    None
+        PIECE_TYPE_NONE,
+        PAWN,
+        KNIGHT,
+        BISHOP,
+        ROOK,
+        QUEEN,
+        KING,
+        ALL_PIECES
     };
 
     enum EColor : unsigned short int
@@ -69,6 +74,23 @@ namespace Arktos
         COLOR_None
     };
 
+    enum EDirection
+    {
+        DIR_North,
+        DIR_South,
+        DIR_East,
+        DIR_West,
+        DIR_NorthEast,
+        DIR_NorthWest,
+        DIR_SouthEast,
+        DIR_SouthWest
+    };
+
+    constexpr ESquare& operator++(ESquare& s) {return s = static_cast<ESquare>(static_cast<unsigned int>(s) + 1);}
+    constexpr ESquare& operator--(ESquare& s) {return s = static_cast<ESquare>(static_cast<unsigned int>(s) - 1);}
+
+    constexpr EColor operator~(EColor c) {return static_cast<EColor>(c ^ COLOR_Black);}
+
     struct BoardState
     {
 	    //U64 Hash; Might have to be a string, gotta lookup how to generate hashes.
@@ -76,6 +98,8 @@ namespace Arktos
 	    ESquare EnpassantSquare = SQ_ER;
 	    bool InCheck = false;
 	    int Repetitions = 0;
+        BitBoard BlockersForKing[COLOR_None];
+        BitBoard Pinners[COLOR_None];
     };
 
     struct Move
