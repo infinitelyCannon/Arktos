@@ -10,8 +10,6 @@ int main(int argc, char** argv)
 	b.Init();
 	b.SetFEN("startpos");
 
-    //b.CheckFEN("");
-
 	Arktos::Move move = b.ParseMove("d2d4");
 	b.MakeMove(move);
 

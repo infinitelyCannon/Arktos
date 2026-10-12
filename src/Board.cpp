@@ -685,25 +685,7 @@ void Arktos::Board::MakeMove(Move move)
             Pieces[static_cast<int>(movedType)] ^= dest;
             Pieces[static_cast<int>(promotedType)] ^= dest;
         }
-        /*
-         *TODO:
-         * Other chess engines ONLY update Enpassant when the side to move legally can perform one
-         * So instead of what I'm doing now where it updates after every double push,
-         * I need to check if a pawn can take this turn, and check for legality
-         * (see if that move puts the King in check)
-         * So then I'll need a way to take a given bitboard and see if a given square is in check
-         */
-        /* checkEP:
-        * Pawn double pushed
-        - at least one adjacent enemy pawn
-    
-        EP is legal the EP capturing pawn is not pinned
-        noDiscovery = the from square was not a blocker for the other king last turn OR the file of the from sq equals the other king's file
-        if noDiscovery AND
 
-        blockersForKing, stored in stateInfo updated in update_slider_blockers(), which is called when setting the initial state from
-        a FEN string and after doing move.
-         */
         const EColor oppSide = sideToMove == COLOR_White ? COLOR_Black : COLOR_White;
         const ESquare attackSq = sideToMove == COLOR_White ? lsb(dest >> 8) : lsb(dest << 8);
         const BitBoard pawns = AttacksBB<PAWN>(attackSq, sideToMove) & GetPieces(~sideToMove, PAWN);

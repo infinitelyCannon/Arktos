@@ -45,20 +45,6 @@ namespace Arktos
             return c == COLOR_White ? Pieces[pt] : Pieces[pt + 6];
         }
 
-        /*
-         * Make Move (mutate board state)
-         * Unname Move (mutate back)
-         * Generate Legal Moves
-         * Need a Move type
-         * - from
-         * - to
-         * - is it a castle
-         * - was there a capture
-         * - was there a promotion
-         * If we have the board history, why don't we rely on that to unmake moves?
-         *
-         */
-
     private:
         void SplitStr(std::vector<std::string>& list, const std::string& str, const char* subStr = " ") const;
         void SetStateInfo();
@@ -69,23 +55,6 @@ namespace Arktos
         EColor sideToMove = COLOR_White;
         int fullMoveClock = 0;
         std::vector<BoardState> StateHistory;
-
-        /*TODO: Magic Bitboards
-         * Data:
-         * Add the rook, bishop, queen empty attack bitboards to the PseudoAtkBB (might not need this)
-         * Add arrays for the sliding masks for MagicBB generations
-         * 2D bitboard table for the actual rook/bishop hashmap
-         * 2D array for ray attacks per direction for each square
-         * Steps:
-         * Precalculate the ray attacks
-         * Precalculate sliding masks and magic numbers
-         * For each square:
-         * For each blocker combination 1 << indexBits:
-         * get the blocker bitboard
-         * do the operation to get the hash index
-         * set the magicBB at that square/index to the calculated sliding attack
-         */
-        
 
         /*
           ____ ____ ____ KQkq
