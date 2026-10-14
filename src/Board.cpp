@@ -27,7 +27,7 @@ void Arktos::Board::SetFEN(const std::string &fenStr)
     char token;
 
     fenStream >> std::noskipws;
-    StateHistory.clear();
+    Reset();
 
     BitBoard sq = SquareBB(SQ_A8);
 
@@ -216,12 +216,15 @@ void Arktos::Board::SetFEN(const std::string &fenStr)
     }
 
     fenStream >> std::skipws;
-    fenStream >> token;
-    StateHistory[0].Repetitions = std::stoi(&token);
+
+    int repetitions = 0;
+    int clock = 0;
+    fenStream >> repetitions >> clock;
+
+    StateHistory[0].Repetitions = repetitions;
     SetStateInfo();
 
-    fenStream >> token;
-    fullMoveClock = std::stoi(&token);
+    fullMoveClock = clock;
 }
 
 void Arktos::Board::CheckFEN(std::string fen)
@@ -238,73 +241,73 @@ void Arktos::Board::CheckFEN(std::string fen)
         {
             case 'r':
                 StateException::Check(Pieces[PIECE_B_Rook] & sq, "Black Rook bitboard does not match FEN string.");
-                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports non-empty square as empty.");
+                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports black rook square as empty.");
                 StateException::Check(Colors[COLOR_Black] & sq, "Black bitboard does not match FEN string.");
                 sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case 'n':
                 StateException::Check(Pieces[PIECE_B_Knight] & sq, "Black Knight bitboard does not match FEN string.");
-                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports non-empty square as empty.");
+                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports black knight square as empty.");
                 StateException::Check(Colors[COLOR_Black] & sq, "Black bitboard does not match FEN string.");
                 sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case 'b':
                 StateException::Check(Pieces[PIECE_B_Bishop] & sq, "Black Bishop bitboard does not match FEN string.");
-                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports non-empty square as empty.");
+                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports black bishop square as empty.");
                 StateException::Check(Colors[COLOR_Black] & sq, "Black bitboard does not match FEN string.");
                 sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case 'q':
                 StateException::Check(Pieces[PIECE_B_Queen] & sq, "Black Queen bitboard does not match FEN string.");
-                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports non-empty square as empty.");
+                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports black queen square as empty.");
                 StateException::Check(Colors[COLOR_Black] & sq, "Black bitboard does not match FEN string.");
                 sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case 'k':
                 StateException::Check(Pieces[PIECE_B_King] & sq, "Black King bitboard does not match FEN string.");
-                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports non-empty square as empty.");
+                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports black king square as empty.");
                 StateException::Check(Colors[COLOR_Black] & sq, "Black bitboard does not match FEN string.");
                 sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case 'p':
                 StateException::Check(Pieces[PIECE_B_Pawn] & sq, "Black Pawn bitboard does not match FEN string.");
-                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports non-empty square as empty.");
+                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports black pawn square as empty.");
                 StateException::Check(Colors[COLOR_Black] & sq, "Black bitboard does not match FEN string.");
                 sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case 'R':
                 StateException::Check(Pieces[PIECE_W_Rook] & sq, "White Rook bitboard does not match FEN string.");
-                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports non-empty square as empty.");
+                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports white rook square as empty.");
                 StateException::Check(Colors[COLOR_White] & sq, "White bitboard does not match FEN string.");
                 sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case 'N':
                 StateException::Check(Pieces[PIECE_W_Knight] & sq, "White Knight bitboard does not match FEN string.");
-                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports non-empty square as empty.");
+                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports white knight square as empty.");
                 StateException::Check(Colors[COLOR_White] & sq, "White bitboard does not match FEN string.");
                 sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case 'B':
                 StateException::Check(Pieces[PIECE_W_Bishop] & sq, "White Bishop bitboard does not match FEN string.");
-                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports non-empty square as empty.");
+                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports white bishop square as empty.");
                 StateException::Check(Colors[COLOR_White] & sq, "White bitboard does not match FEN string.");
                 sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case 'Q':
                 StateException::Check(Pieces[PIECE_W_Queen] & sq, "White Queen bitboard does not match FEN string.");
-                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports non-empty square as empty.");
+                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports white queen square as empty.");
                 StateException::Check(Colors[COLOR_White] & sq, "White bitboard does not match FEN string.");
                 sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case 'K':
                 StateException::Check(Pieces[PIECE_W_King] & sq, "White King bitboard does not match FEN string.");
-                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports non-empty square as empty.");
+                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports white king square as empty.");
                 StateException::Check(Colors[COLOR_White] & sq, "White bitboard does not match FEN string.");
                 sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
             case 'P':
                 StateException::Check(Pieces[PIECE_W_Pawn] & sq, "White Pawn bitboard does not match FEN string.");
-                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports non-empty square as empty.");
+                StateException::Check(!(Pieces[PIECE_Empty] & sq), "Empty bitboard reports white pawn square as empty.");
                 StateException::Check(Colors[COLOR_White] & sq, "White bitboard does not match FEN string.");
                 sq = sq & FILE_H ? sq >> 7 : sq << 1;
                 break;
@@ -333,6 +336,11 @@ void Arktos::Board::CheckFEN(std::string fen)
                         std::ostringstream msg;
                         msg << "Bitboard index (" << p << ") reported occupied for an empty FEN square";
                         StateException::Check(!(Pieces[p] & sq), msg.str().c_str());
+                    }
+
+                    if (sq == SquareBB(SQ_H8))
+                    {
+                        break;
                     }
                 }
 
@@ -364,30 +372,33 @@ void Arktos::Board::CheckFEN(std::string fen)
 
     fenStream >> token;
 
+    unsigned short cast = 0;
     while ((fenStream >> token) && !isspace(token))
     {
         switch (token)
         {
             case 'K':
-                StateException::Check(StateHistory.back().CastlingRights & K_CAST, "White king is missing castling rights.");
+                cast |= K_CAST;
                 break;
             case 'Q':
-                StateException::Check(StateHistory.back().CastlingRights & Q_CAST, "White queen is missing castling rights.");
+                cast |= Q_CAST;
                 break;
             case 'k':
-                StateException::Check(StateHistory.back().CastlingRights & k_CAST, "Black king is missing castling rights.");
+                cast |= k_CAST;
                 break;
             case 'q':
-                StateException::Check(StateHistory.back().CastlingRights & q_CAST, "Black queen is missing castling rights.");
+                cast |= q_CAST;
                 break;
             case '-':
-                StateException::Check(StateHistory.back().CastlingRights == 0, "Castling rights reported as not blank when it should be.");
+                cast = 0;
                 break;
             default:
                 throw std::invalid_argument("Unknown token found for Castling rights");
                 break;
         }
     }
+
+    StateException::Check(StateHistory.back().CastlingRights == cast, "Incorrect castling rights");
 
     fenStream >> token;
     ESquare enPassant = SQ_ER;
@@ -434,11 +445,12 @@ void Arktos::Board::CheckFEN(std::string fen)
     StateException::Check(StateHistory.back().EnpassantSquare == enPassant, "EnPassant Square mismatch.");
 
     fenStream >> std::skipws;
-    fenStream >> token;
-    StateException::Check(StateHistory.back().Repetitions == std::stoi(&token), "Half-clock values do not match.");
+    int repetitions = 0;
+    int clock = 0;
 
-    fenStream >> token;
-    StateException::Check(fullMoveClock == std::stoi(&token), "Full move clock values do not match.");
+    fenStream >> repetitions >> clock;
+    StateException::Check(StateHistory.back().Repetitions == repetitions, "Half-clock values do not match.");
+    StateException::Check(fullMoveClock == clock, "Full move clock values do not match.");
 }
 
 Arktos::Move Arktos::Board::ParseMove(std::string str) const
@@ -526,7 +538,7 @@ Arktos::Move Arktos::Board::ParseMove(std::string str) const
     {
         capturedType = sideToMove == COLOR_White ? PIECE_B_Pawn : PIECE_W_Pawn;
     }
-    else if (Pieces[PIECE_Empty] & SquareBB(to))
+    else if (~Pieces[PIECE_Empty] & SquareBB(to))
     {
         for (int p = PIECE_W_Pawn; p != PIECE_Invalid; ++p)
         {
@@ -558,7 +570,7 @@ Arktos::Move Arktos::Board::ParseMove(std::string str) const
         case 'b':
             promotedType = sideToMove == COLOR_White ? PIECE_W_Bishop : PIECE_B_Bishop;
             break;
-        case 'k':
+        case 'n':
             promotedType = sideToMove == COLOR_White ? PIECE_W_Knight : PIECE_B_Knight;
             break;
     }
@@ -619,71 +631,106 @@ void Arktos::Board::MakeMove(Move move)
     ESquare fromSq = lsb(start);
 
     assert(sideToMove != COLOR_None);
-
-    Pieces[movedType] ^= start | dest;
-    Pieces[PIECE_Empty] ^= start | dest;
-    Colors[sideToMove] ^= start | dest;
+    
     newState.EnpassantSquare = SQ_ER;
 
-    if (sideToMove == COLOR_White &&
-        movedType == PIECE_W_Pawn &&
-        capturedType == PIECE_B_Pawn &&
-        lsb(dest) == StateHistory.back().EnpassantSquare)
+    if ((movedType == PIECE_B_Pawn || movedType == PIECE_W_Pawn) && toSq == StateHistory.back().EnpassantSquare)
     {
-        Pieces[PIECE_B_Pawn] ^= dest << 8;
-        Colors[COLOR_Black] ^= dest << 8;
-    }
-    else if (sideToMove == COLOR_Black &&
-            movedType == PIECE_B_Pawn &&
-            capturedType == PIECE_W_Pawn &&
-            lsb(dest) == StateHistory.back().EnpassantSquare)
-    {
-        Pieces[PIECE_W_Pawn] ^= dest >> 8;
-        Colors[COLOR_White] ^= dest >> 8;
+        MovePiece<PAWN>(sideToMove, start, dest);
+        RemovePiece<PAWN>(~sideToMove, sideToMove ? dest >> 8 : dest << 8);
     }
     else if (capturedType != PIECE_Invalid)
     {
-        Pieces[capturedType] ^= dest;
-        Colors[sideToMove == COLOR_White ? COLOR_Black : COLOR_White] ^= dest;
+        RemovePiece(capturedType, ~sideToMove, dest);
+        MovePiece(movedType, sideToMove, start, dest);
+    }
+    else
+    {
+        MovePiece(movedType, sideToMove, start, dest);
     }
 
+    // Castling
     if (move.KingSideCastle())
     {
         if (sideToMove == COLOR_White)
         {
-            Pieces[PIECE_W_Rook] ^= SquareBB(SQ_H1) | SquareBB(SQ_F1);
-            Colors[COLOR_White] ^= SquareBB(SQ_H1) | SquareBB(SQ_F1);
-            newState.CastlingRights &= k_CAST | q_CAST;
+            MovePiece<ROOK>(sideToMove, SquareBB(SQ_H1), SquareBB(SQ_F1));
         }
         else
         {
-            Pieces[PIECE_B_Rook] ^= SquareBB(SQ_H8) | SquareBB(SQ_F8);
-            Colors[COLOR_Black] ^= SquareBB(SQ_H8) | SquareBB(SQ_F8);
-            newState.CastlingRights &= K_CAST | Q_CAST;
+            MovePiece<ROOK>(sideToMove, SquareBB(SQ_H8), SquareBB(SQ_F8));
         }
+        RemoveCastlingForSide(sideToMove, newState);
     }
     else if (move.QueenSideCastle())
     {
         if (sideToMove == COLOR_White)
         {
-            Pieces[PIECE_W_Rook] ^= SquareBB(SQ_A1) | SquareBB(SQ_D1);
-            Colors[COLOR_White] ^= SquareBB(SQ_A1) | SquareBB(SQ_D1);
-            newState.CastlingRights &= k_CAST | q_CAST;
+            MovePiece<ROOK>(sideToMove, SquareBB(SQ_A1), SquareBB(SQ_D1));
         }
         else
         {
-            Pieces[PIECE_B_Rook] ^= SquareBB(SQ_A8) | SquareBB(SQ_D8);
-            Colors[COLOR_Black] ^= SquareBB(SQ_A8) | SquareBB(SQ_D8);
-            newState.CastlingRights &= K_CAST | Q_CAST;
+            MovePiece<ROOK>(sideToMove, SquareBB(SQ_A8), SquareBB(SQ_D8));;
+        }
+        RemoveCastlingForSide(sideToMove, newState);
+    }
+    else if ((movedType == PIECE_B_King || movedType == PIECE_W_King) &&
+            (fromSq == SQ_E1 || fromSq == SQ_E8))
+    {
+        RemoveCastlingForSide(sideToMove, newState);
+    }
+    else if (movedType == PIECE_W_Rook)
+    {
+        if (fromSq == SQ_A1)
+        {
+            newState.CastlingRights &= K_CAST | k_CAST | q_CAST;
+        }
+        else if (fromSq == SQ_H1)
+        {
+            newState.CastlingRights &= Q_CAST | k_CAST | q_CAST;
+        }
+    }
+    else if (movedType == PIECE_B_Rook)
+    {
+        if (fromSq == SQ_A8)
+        {
+            newState.CastlingRights &= K_CAST | Q_CAST | k_CAST;
+        }
+        else if (fromSq == SQ_H8)
+        {
+            newState.CastlingRights &= K_CAST | Q_CAST | q_CAST;
+        }
+    }
+    else if (capturedType == PIECE_B_Rook)
+    {
+        if (toSq == SQ_A8)
+        {
+            newState.CastlingRights &= K_CAST | Q_CAST | k_CAST;
+        }
+        else if (toSq == SQ_H8)
+        {
+            newState.CastlingRights &= K_CAST | Q_CAST | q_CAST;
+        }
+    }
+    else if (capturedType == PIECE_W_Rook)
+    {
+        if (toSq == SQ_A1)
+        {
+            newState.CastlingRights &= k_CAST | q_CAST | K_CAST;
+        }
+        else if (toSq == SQ_H1)
+        {
+            newState.CastlingRights &= k_CAST | q_CAST | Q_CAST;
         }
     }
 
+    // Extra pawn checks
     if (movedType == PIECE_W_Pawn || movedType == PIECE_B_Pawn)
     {
         if (promotedType != PIECE_Invalid)
         {
-            Pieces[static_cast<int>(movedType)] ^= dest;
-            Pieces[static_cast<int>(promotedType)] ^= dest;
+            RemovePiece<PAWN>(sideToMove, dest);
+            AddPiece(promotedType, sideToMove, dest);
         }
 
         const EColor oppSide = sideToMove == COLOR_White ? COLOR_Black : COLOR_White;
@@ -722,7 +769,7 @@ void Arktos::Board::MakeMove(Move move)
         fullMoveClock++;
     }
 
-    sideToMove = sideToMove == COLOR_White ? COLOR_Black : COLOR_White;
+    sideToMove = ~sideToMove;
 
     StateHistory.push_back(newState);
     SetStateInfo();

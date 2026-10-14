@@ -94,6 +94,7 @@ namespace Arktos
     struct BoardState
     {
 	    //U64 Hash; Might have to be a string, gotta lookup how to generate hashes.
+        
 	    unsigned short CastlingRights = 0;
 	    ESquare EnpassantSquare = SQ_ER;
 	    bool InCheck = false;

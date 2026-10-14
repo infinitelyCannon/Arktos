@@ -45,10 +45,79 @@ namespace Arktos
             return c == COLOR_White ? Pieces[pt] : Pieces[pt + 6];
         }
 
+        inline void RemoveCastlingForSide(EColor side, BoardState& state)
+        {
+            assert(side != COLOR_None);
+            state.CastlingRights &= k_CAST << (side * 2) | q_CAST << (side * 2);
+        }
+
+        template<PieceType pt>
+        inline void MovePiece(EColor c, BitBoard from, BitBoard to)
+        {
+            assert(c != COLOR_None && pt != PIECE_TYPE_NONE && pt != ALL_PIECES);
+            Pieces[pt + (c * 6)] ^= from | to;
+            Pieces[PIECE_Empty] ^= from | to;
+            Colors[c] ^= from | to;
+        }
+
+        template<PieceType pt>
+        inline void AddPiece(EColor c, BitBoard sq)
+        {
+            assert(c != COLOR_None && pt != ALL_PIECES && pt != PIECE_TYPE_NONE);
+            Pieces[pt + (c * 6)] |= sq;
+            Colors[c] |= sq;
+            Pieces[PIECE_Empty] &= ~sq;
+        }
+
+        template<PieceType pt>
+        inline void RemovePiece(EColor c, BitBoard sq)
+        {
+            assert(pt != ALL_PIECES && pt != PIECE_TYPE_NONE && c != COLOR_None);
+            Pieces[PIECE_Empty] |= sq;
+            Pieces[pt + (c * 6)] &= ~sq;
+            Colors[c] &= ~sq;
+        }
+
+        inline void RemovePiece(EPiece p, EColor c, BitBoard sq)
+        {
+            assert(p != PIECE_Invalid && p != PIECE_Empty);
+            Pieces[PIECE_Empty] |= sq;
+            Pieces[p] &= ~sq;
+            Colors[c] &= ~sq;
+        }
+
+        inline void MovePiece(EPiece p, EColor c, BitBoard from, BitBoard to)
+        {
+            assert(p != PIECE_Invalid && p != PIECE_Empty);
+            Pieces[p] ^= from | to;
+            Pieces[PIECE_Empty] ^= from | to;
+            Colors[c] ^= from | to;
+        }
+
+        inline void AddPiece(EPiece p, EColor c, BitBoard sq)
+        {
+            assert(p != PIECE_Invalid && p != PIECE_Empty);
+            Pieces[p] |= sq;
+            Pieces[PIECE_Empty] &= ~sq;
+            Colors[c] |= sq;
+        }
+
     private:
         void SplitStr(std::vector<std::string>& list, const std::string& str, const char* subStr = " ") const;
         void SetStateInfo();
         void UpdateSliderBlockers(EColor color);
+        void Reset()
+        {
+            StateHistory.clear();
+            sideToMove = COLOR_White;
+            fullMoveClock = 0;
+            for (int i = PIECE_Empty; i != PIECE_Invalid; ++i)
+            {
+                Pieces[i] = 0;
+            }
+            Colors[COLOR_White] = 0;
+            Colors[COLOR_Black] = 0;
+        }
 
         BitBoard Pieces[PIECE_Invalid] = {0};
         BitBoard Colors[COLOR_None] = {0};
