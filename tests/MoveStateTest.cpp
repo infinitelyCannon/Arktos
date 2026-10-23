@@ -3,6 +3,8 @@
 #include <iostream>
 #include <fstream>
 #include <format>
+#include <utility>
+#include <algorithm>
 
 #include "Arktos.h"
 #include "Board.h"
@@ -20,6 +22,7 @@ int main(int argc, char** argv)
 
     const int numGames = std::stoi(argv[1]);
     Arktos::Board board;
+    std::vector<std::pair<Arktos::Move, std::string>> moves; // wish I knew how to stream a file backwards, but until then...
     board.Init();
 
     for (int i = 1; i <= numGames; ++i)
@@ -38,10 +41,11 @@ int main(int argc, char** argv)
                 {
                     size_t split = line.find('|');
                     Arktos::Move move = board.ParseMove(line.substr(0, split));
+                    moves.emplace_back(move, line.substr(split + 1));
                     board.MakeMove(move);
                     board.CheckFEN(line.substr(split + 1));
                 }
-                catch (Arktos::StateException &err)
+                catch (const Arktos::StateException &err)
                 {
                     std::cerr << "Exception thrown at move (" << lineNum << "): " << err.what() << std::endl;
                     file.close();
@@ -50,6 +54,23 @@ int main(int argc, char** argv)
                 ++lineNum;
             }
             file.close();
+
+            try
+            {
+                --lineNum;
+                std::for_each(moves.rbegin(), moves.rend(), [&board, &lineNum](const std::pair<Arktos::Move, std::string> pair){
+                    board.CheckFEN(pair.second);
+                    board.UnMakeMove(pair.first);
+                    --lineNum;
+                });
+                board.CheckFEN("startpos");
+                moves.clear();
+            }
+            catch(const Arktos::StateException &err)
+            {
+                std::cerr << "Exception while undoing at line (" << lineNum << "): " << err.what() << std::endl;
+                return 1;
+            }
         }
         else
         {

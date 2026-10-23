@@ -12,6 +12,8 @@ namespace Arktos
         Board();
         ~Board();
 
+        // TODO: Should probalbly move this to an engine constructor or something
+        // since this is just initializes universal attack data.
         void Init();
         void SetFEN(const std::string &fenStr);
         std::string GetBitBoardStr(EPiece type) const;

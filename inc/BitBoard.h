@@ -124,6 +124,16 @@ namespace Arktos
         return newBoard;
     }
 
+    inline BitBoard shiftNorth(BitBoard board, int n)
+    {
+        return board << (n * 8);
+    }
+
+    inline BitBoard shiftSouth(BitBoard board, int n)
+    {
+        return board >> (n * 8);
+    }
+
     inline int GetRank(ESquare sq)
     {
         assert(is_ok(sq));

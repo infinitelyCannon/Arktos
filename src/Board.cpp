@@ -230,7 +230,7 @@ void Arktos::Board::SetFEN(const std::string &fenStr)
 void Arktos::Board::CheckFEN(std::string fen)
 {
     BitBoard sq = SquareBB(SQ_A8);
-    std::istringstream fenStream(fen);
+    std::istringstream fenStream(fen == "startpos" ? START_POS : fen);
     char token;
 
     fenStream >> std::noskipws;
@@ -637,7 +637,7 @@ void Arktos::Board::MakeMove(Move move)
     if ((movedType == PIECE_B_Pawn || movedType == PIECE_W_Pawn) && toSq == StateHistory.back().EnpassantSquare)
     {
         MovePiece<PAWN>(sideToMove, start, dest);
-        RemovePiece<PAWN>(~sideToMove, sideToMove ? dest >> 8 : dest << 8);
+        RemovePiece<PAWN>(~sideToMove, capturedType == PIECE_W_Pawn ? shiftNorth(dest, 1) : shiftSouth(dest, 1));
     }
     else if (capturedType != PIECE_Invalid)
     {
@@ -812,7 +812,59 @@ void Arktos::Board::SetStateInfo()
 
 void Arktos::Board::UnMakeMove(Move move)
 {
+    assert(StateHistory.size() > 1);
 
+    const EPiece movedType = move.GetMovedPiece();
+    const EPiece capturedType = move.GetCapturedPiece();
+    const EPiece promotedType = move.GetPromotedPiece();
+    const BitBoard from = move.GetFrom();
+    const BitBoard to = move.GetTo();
+    const ESquare fromSq = lsb(from);
+    const ESquare toSq = lsb(to);
+    BoardState state = StateHistory[StateHistory.size() - 2];
+
+    sideToMove = ~sideToMove;
+
+    if ((movedType == PIECE_B_Pawn || movedType == PIECE_W_Pawn) && 
+            toSq == state.EnpassantSquare)
+    {
+        AddPiece<PAWN>(~sideToMove, capturedType == PIECE_W_Pawn ? shiftNorth(to, 1) : shiftSouth(to, 1));
+        MovePiece<PAWN>(sideToMove, to, from);
+    }
+    else if (promotedType != PIECE_Invalid)
+    {
+        RemovePiece(promotedType, sideToMove, to);
+        AddPiece<PAWN>(sideToMove, from);
+    }
+    else if (move.QueenSideCastle())
+    {
+        const ESquare start = sideToMove ? SQ_D8 : SQ_D1;
+        const ESquare end = sideToMove ? SQ_A8 : SQ_A1;
+        MovePiece<ROOK>(sideToMove, SquareBB(start), SquareBB(end));
+        MovePiece<KING>(sideToMove, to, from);
+    }
+    else if (move.KingSideCastle())
+    {
+        const ESquare start = sideToMove ? SQ_F8 : SQ_F1;
+        const ESquare end = sideToMove ? SQ_H8 : SQ_H1;
+        MovePiece<ROOK>(sideToMove, SquareBB(start), SquareBB(end));
+        MovePiece<KING>(sideToMove, to, from);
+    }
+    else
+    {
+        MovePiece(movedType, sideToMove, to, from);
+    }
+
+    if (capturedType != PIECE_Invalid && toSq != state.EnpassantSquare)
+    {
+        AddPiece(capturedType, ~sideToMove, to);
+    }
+
+    if (sideToMove == COLOR_Black)
+    {
+        --fullMoveClock;
+    }
+    StateHistory.pop_back();
 }
 
 std::string Arktos::Board::GetBitBoardStr(EPiece type) const
